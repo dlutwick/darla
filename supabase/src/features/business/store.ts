@@ -730,6 +730,16 @@ function migrateMasterImportSalesCorrections(state: BusinessAppState) {
   };
 }
 
+function migrateMissingMasterImportSales(state: BusinessAppState) {
+  const existingSaleIds = new Set(state.sales.map((sale) => sale.saleId));
+  const missingSales = MASTER_IMPORT_STATE.sales.filter((sale) => !existingSaleIds.has(sale.saleId));
+
+  return {
+    state: missingSales.length ? { ...state, sales: sortSales([...state.sales, ...missingSales]) } : state,
+    changed: missingSales.length > 0,
+  };
+}
+
 export function getProductPackSize(product: ProductUnitShape) {
   return product.sellUnitType === 'pack' ? Math.max(1, product.packSize ?? 1) : 1;
 }
@@ -879,10 +889,12 @@ export async function loadBusinessState(): Promise<BusinessAppState> {
   cachedState = donnaMigration.state;
   const masterImportSalesMigration = migrateMasterImportSalesCorrections(cachedState);
   cachedState = masterImportSalesMigration.state;
+  const missingMasterImportSalesMigration = migrateMissingMasterImportSales(cachedState);
+  cachedState = missingMasterImportSalesMigration.state;
   const automaticExpenses = applyAutomaticExpensesToState(cachedState);
   cachedState = automaticExpenses.state;
 
-  if (migrated.changed || donnaMigration.changed || masterImportSalesMigration.changed || automaticExpenses.added.length) {
+  if (migrated.changed || donnaMigration.changed || masterImportSalesMigration.changed || missingMasterImportSalesMigration.changed || automaticExpenses.added.length) {
     if (canUseStorage()) {
       window.localStorage.setItem(BUSINESS_STORAGE_KEY, JSON.stringify(cachedState));
     } else {

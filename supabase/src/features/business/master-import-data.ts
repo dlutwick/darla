@@ -1,8 +1,9 @@
 import type { BusinessAppState } from './store';
 
 export const MASTER_IMPORT_SOURCE = {
+  salesFile: 'audits/business-app-2026-07-14/sales.csv',
   workbook: 'Darla_Sales_Master.xlsx',
-  sheetsUsed: ['Raw Data', 'Expenses', 'Giveaway Tracking', 'Monthly Summary'],
+  sheetsUsed: ['sales.csv', 'Expenses', 'Giveaway Tracking', 'Monthly Summary'],
   dateRange: '2026-01-01 to 2026-07-12',
   salesRows: 88,
   expenseRows: 49,
