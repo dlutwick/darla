@@ -11,12 +11,12 @@ import { SectionHeader } from '../supabase/src/components/ui/SectionHeader';
 import { StatRow } from '../supabase/src/components/ui/StatRow';
 import { TextField } from '../supabase/src/components/ui/TextField';
 import { theme } from '../supabase/src/constants/theme';
-import { addExpense, AUTOMATIC_MONTHLY_EXPENSES, AUTOMATIC_MONTHLY_EXPENSE_TOTAL, BusinessType, ExpenseType, getDashboardSnapshot, getExpenseById, HARTLAND_FARM_MARKET_FEE_AMOUNT, HARTLAND_FARM_MARKET_FEE_CATEGORY, HARTLAND_FARM_MARKET_FEE_VENDOR, MARKET_FEES_EVENTS_CATEGORY, updateExpense, voidExpense } from '../supabase/src/features/business/store';
+import { addExpense, AUTOMATIC_MONTHLY_EXPENSES, AUTOMATIC_MONTHLY_EXPENSE_TOTAL, BusinessType, ExpenseType, getDashboardSnapshot, getExpenseById, HARTLAND_FARM_MARKET_FEE_AMOUNT, HARTLAND_FARM_MARKET_FEE_CATEGORY, HARTLAND_FARM_MARKET_FEE_VENDOR, updateExpense, voidExpense } from '../supabase/src/features/business/store';
 import { confirmAction } from '../supabase/src/lib/confirmAction';
 import { getLocalDay } from '../supabase/src/lib/date';
 import { formatWithUnit } from '../supabase/src/lib/format';
 
-const EXPENSE_CATEGORIES = ['Ingredients', 'Packaging', 'Supplies', MARKET_FEES_EVENTS_CATEGORY, 'Table Fees', 'Fuel', 'Equipment', 'Tax', 'Other'];
+const EXPENSE_CATEGORIES = ['Bakery Ingredients & Supplies', 'Packaging', 'Event Fees', 'Craft Materials', 'Software & Subscriptions', 'Utilities & Overhead', 'Commissions', 'Taxes & Fees'];
 
 function parsePositive(value: string, label: string) {
   const parsed = Number(value.trim());

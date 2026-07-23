@@ -223,16 +223,17 @@ export const CRAFT_CATEGORIES = ['Laser Crafts', 'Sewing', 'Sublimation', 'Wreat
 export const PAYMENT_TYPES: PaymentType[] = ['cash', 'e-transfer', 'card', 'other'];
 export const ORDER_STATUSES: OrderStatus[] = ['new', 'in progress', 'ready', 'picked up', 'paid'];
 export const SELL_UNIT_TYPES: SellUnitType[] = ['each', 'loaf', 'pack', 'custom'];
-export const MARKET_FEES_EVENTS_CATEGORY = 'Market Fees/Events';
+export const MARKET_FEES_EVENTS_CATEGORY = 'Event Fees';
 export const AUTOMATIC_MONTHLY_EXPENSES = [
   { name: 'Craft Booth Fee', amount: 70, category: MARKET_FEES_EVENTS_CATEGORY, vendor: 'Craft Booth Fee', businessType: 'craft' as const },
-  { name: 'Fridge Fee', amount: 12, category: 'Supplies', vendor: 'Fridge Fee', businessType: 'bakery' as const },
-  { name: 'Tax', amount: 12.30, category: 'Tax', vendor: 'Tax', businessType: 'bakery' as const },
+  { name: 'Fridge Fee', amount: 12, category: 'Utilities & Overhead', vendor: 'Fridge Fee', businessType: 'bakery' as const },
+  { name: 'Tax', amount: 12.30, category: 'Taxes & Fees', vendor: 'Tax', businessType: 'bakery' as const },
 ];
 export const AUTOMATIC_MONTHLY_EXPENSE_TOTAL = Number(AUTOMATIC_MONTHLY_EXPENSES.reduce((sum, expense) => sum + expense.amount, 0).toFixed(2));
 export const HARTLAND_FARM_MARKET_FEE_AMOUNT = 25;
 export const HARTLAND_FARM_MARKET_FEE_VENDOR = 'Hartland Farm Market';
 export const HARTLAND_FARM_MARKET_FEE_CATEGORY = MARKET_FEES_EVENTS_CATEGORY;
+export const HARTLAND_FARM_MARKET_FEE_START_DATE = '2026-06-20';
 export const HARTLAND_FARM_MARKET_FEE_END_DATE = '2026-09-01';
 const BUTTER_TARTS_PRICE_EFFECTIVE_DATE = '2026-05-01';
 const BUTTER_TARTS_PACK_SIZE_FROM_EFFECTIVE_DATE = 6;
@@ -1229,6 +1230,11 @@ function getNextSaturdayOnOrAfter(date: string) {
   return addDays(date, daysUntilSaturday);
 }
 
+function getPreviousSaturdayOnOrBefore(date: string) {
+  const daysSinceSaturday = (getUtcWeekday(date) - 6 + 7) % 7;
+  return addDays(date, -daysSinceSaturday);
+}
+
 type AutomaticExpenseDraft = {
   date: ISODate;
   month: string;
@@ -1265,28 +1271,43 @@ function buildAutomaticExpenseDrafts(currentDate = getLocalDay()): AutomaticExpe
     : [];
 
   const marketDrafts: AutomaticExpenseDraft[] = [];
-  if (today <= HARTLAND_FARM_MARKET_FEE_END_DATE) {
-    for (let date = getNextSaturdayOnOrAfter(today); date <= HARTLAND_FARM_MARKET_FEE_END_DATE; date = addDays(date, 7)) {
-      marketDrafts.push({
-        date,
-        month: getMonthKey(date),
-        expenseType: 'expense',
-        expenseCategory: HARTLAND_FARM_MARKET_FEE_CATEGORY,
-        vendor: HARTLAND_FARM_MARKET_FEE_VENDOR,
-        businessType: 'bakery',
-        businessLine: 'bakery',
-        amount: HARTLAND_FARM_MARKET_FEE_AMOUNT,
-        note: `Automatic Hartland Farm Market Fee for ${date}`,
-        createdAt: timestamp,
-        updatedAt: timestamp,
-      });
-    }
+  const latestEligibleMarketDate = getPreviousSaturdayOnOrBefore(today);
+  if (latestEligibleMarketDate >= HARTLAND_FARM_MARKET_FEE_START_DATE && latestEligibleMarketDate <= today && latestEligibleMarketDate <= HARTLAND_FARM_MARKET_FEE_END_DATE) {
+    marketDrafts.push({
+      date: latestEligibleMarketDate,
+      month: getMonthKey(latestEligibleMarketDate),
+      expenseType: 'expense',
+      expenseCategory: HARTLAND_FARM_MARKET_FEE_CATEGORY,
+      vendor: HARTLAND_FARM_MARKET_FEE_VENDOR,
+      businessType: 'bakery',
+      businessLine: 'bakery',
+      amount: HARTLAND_FARM_MARKET_FEE_AMOUNT,
+      note: `Automatic Hartland Farm Market Fee for ${latestEligibleMarketDate}`,
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    });
   }
 
   return [...monthlyDrafts, ...marketDrafts];
 }
 
+function isHartlandFarmMarketFeeDraft(draft: AutomaticExpenseDraft) {
+  return draft.vendor === HARTLAND_FARM_MARKET_FEE_VENDOR
+    && Number(draft.amount.toFixed(2)) === HARTLAND_FARM_MARKET_FEE_AMOUNT
+    && draft.note === `Automatic Hartland Farm Market Fee for ${draft.date}`;
+}
+
 function automaticExpenseExists(expenses: ExpenseRecord[], draft: AutomaticExpenseDraft) {
+  if (isHartlandFarmMarketFeeDraft(draft)) {
+    return expenses.some((expense) => (
+      expense.date === draft.date
+      && expense.expenseType === draft.expenseType
+      && expense.vendor === draft.vendor
+      && Number(expense.amount.toFixed(2)) === Number(draft.amount.toFixed(2))
+      && (expense.note === draft.note || expense.notes === draft.note)
+    ));
+  }
+
   return expenses.some((expense) => (
     expense.date === draft.date
     && expense.expenseType === draft.expenseType
