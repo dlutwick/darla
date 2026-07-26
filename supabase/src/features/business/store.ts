@@ -674,6 +674,49 @@ function migrateDonnaThirdPartyProducts(state: BusinessAppState) {
   };
 }
 
+const MASTER_IMPORT_PRODUCT_CORRECTION_FIELDS: Array<keyof ProductRecord> = [
+  'businessType',
+  'businessLine',
+  'productType',
+  'name',
+  'category',
+  'vendorName',
+  'commissionPercent',
+  'sellUnitType',
+  'customUnitName',
+  'packSize',
+];
+
+function migrateMasterImportProductCorrections(state: BusinessAppState) {
+  const canonicalProductsById = new Map(MASTER_IMPORT_STATE.products.map((product) => [
+    product.productId,
+    normalizeProductRecord(product as Partial<ProductRecord>),
+  ]));
+  let changed = false;
+
+  const products = state.products.map((product) => {
+    const canonical = canonicalProductsById.get(product.productId);
+    if (!canonical) {
+      return product;
+    }
+
+    const next: ProductRecord = { ...product };
+    for (const field of MASTER_IMPORT_PRODUCT_CORRECTION_FIELDS) {
+      if (next[field] !== canonical[field]) {
+        (next as Record<keyof ProductRecord, unknown>)[field] = canonical[field];
+        changed = true;
+      }
+    }
+
+    return next;
+  });
+
+  return {
+    state: changed ? { ...state, products: sortProducts(products) } : state,
+    changed,
+  };
+}
+
 const MASTER_IMPORT_SALE_CORRECTION_FIELDS: Array<keyof SaleRecord> = [
   'businessType',
   'businessLine',
@@ -738,6 +781,23 @@ function migrateMissingMasterImportSales(state: BusinessAppState) {
   return {
     state: missingSales.length ? { ...state, sales: sortSales([...state.sales, ...missingSales]) } : state,
     changed: missingSales.length > 0,
+  };
+}
+
+function migrateBusinessState(state: BusinessAppState) {
+  const packagedProductsMigration = migrateSuggestedPackagedProducts(state);
+  const donnaMigration = migrateDonnaThirdPartyProducts(packagedProductsMigration.state);
+  const masterImportProductsMigration = migrateMasterImportProductCorrections(donnaMigration.state);
+  const masterImportSalesMigration = migrateMasterImportSalesCorrections(masterImportProductsMigration.state);
+  const missingMasterImportSalesMigration = migrateMissingMasterImportSales(masterImportSalesMigration.state);
+
+  return {
+    state: missingMasterImportSalesMigration.state,
+    changed: packagedProductsMigration.changed
+      || donnaMigration.changed
+      || masterImportProductsMigration.changed
+      || masterImportSalesMigration.changed
+      || missingMasterImportSalesMigration.changed,
   };
 }
 
@@ -873,37 +933,42 @@ async function readPersistedState(): Promise<BusinessAppState> {
   }
 }
 
+async function writeBusinessStateToStorage(state: BusinessAppState) {
+  if (canUseStorage()) {
+    window.localStorage.setItem(BUSINESS_STORAGE_KEY, JSON.stringify(state));
+    return;
+  }
+
+  const secureStore = await getSecureStore();
+  if (secureStore) {
+    await secureStore.setItemAsync(BUSINESS_STORAGE_KEY, JSON.stringify(state));
+  }
+}
+
 export async function loadBusinessState(): Promise<BusinessAppState> {
   if (cachedState) {
+    const migrated = migrateBusinessState(cachedState);
+    cachedState = migrated.state;
     const automaticExpenses = applyAutomaticExpensesToState(cachedState);
-    if (automaticExpenses.added.length) {
-      await saveBusinessState(automaticExpenses.state);
+    cachedState = automaticExpenses.state;
+
+    if (migrated.changed || automaticExpenses.added.length) {
+      await writeBusinessStateToStorage(cachedState);
+      dispatchStoreUpdated();
     }
+
     return cachedState;
   }
 
   const persistedRaw = await readPersistedState();
   cachedState = persistedRaw;
-  const migrated = migrateSuggestedPackagedProducts(cachedState);
+  const migrated = migrateBusinessState(cachedState);
   cachedState = migrated.state;
-  const donnaMigration = migrateDonnaThirdPartyProducts(cachedState);
-  cachedState = donnaMigration.state;
-  const masterImportSalesMigration = migrateMasterImportSalesCorrections(cachedState);
-  cachedState = masterImportSalesMigration.state;
-  const missingMasterImportSalesMigration = migrateMissingMasterImportSales(cachedState);
-  cachedState = missingMasterImportSalesMigration.state;
   const automaticExpenses = applyAutomaticExpensesToState(cachedState);
   cachedState = automaticExpenses.state;
 
-  if (migrated.changed || donnaMigration.changed || masterImportSalesMigration.changed || missingMasterImportSalesMigration.changed || automaticExpenses.added.length) {
-    if (canUseStorage()) {
-      window.localStorage.setItem(BUSINESS_STORAGE_KEY, JSON.stringify(cachedState));
-    } else {
-      const secureStore = await getSecureStore();
-      if (secureStore) {
-        await secureStore.setItemAsync(BUSINESS_STORAGE_KEY, JSON.stringify(cachedState));
-      }
-    }
+  if (migrated.changed || automaticExpenses.added.length) {
+    await writeBusinessStateToStorage(cachedState);
   }
 
   return cachedState;
@@ -912,14 +977,7 @@ export async function loadBusinessState(): Promise<BusinessAppState> {
 async function saveBusinessState(state: BusinessAppState) {
   cachedState = normalizeState(state);
 
-  if (canUseStorage()) {
-    window.localStorage.setItem(BUSINESS_STORAGE_KEY, JSON.stringify(cachedState));
-  } else {
-    const secureStore = await getSecureStore();
-    if (secureStore) {
-      await secureStore.setItemAsync(BUSINESS_STORAGE_KEY, JSON.stringify(cachedState));
-    }
-  }
+  await writeBusinessStateToStorage(cachedState);
 
   dispatchStoreUpdated();
 }
@@ -935,6 +993,7 @@ export function subscribeBusinessState(listener: () => void) {
 
   const handle = () => listener();
   window.addEventListener(STORE_UPDATED_EVENT, handle as EventListener);
+
   return () => {
     storeListeners.delete(listener);
     window.removeEventListener(STORE_UPDATED_EVENT, handle as EventListener);

@@ -26,8 +26,13 @@ function buildCsv(headers: string[], rows: CsvCell[][]) {
 export async function buildSalesCsv(): Promise<CsvResult> {
   const [state, snapshot] = await Promise.all([exportBusinessBackup(), getDashboardSnapshot()]);
   const productsById = new Map(state.products.map((product) => [product.productId, product]));
+  const salesById = new Map(state.sales.map((sale) => [sale.saleId, sale]));
   const rows = snapshot.sales.map((sale) => {
     const product = productsById.get(sale.productId);
+    const sourceSale = salesById.get(sale.saleId);
+    const costPerItem = sale.productType === 'third-party'
+      ? sourceSale?.costPerItem ?? sale.costPerItem ?? product?.cost ?? ''
+      : sale.costPerItem ?? product?.cost ?? '';
     return [
       sale.month,
       sale.itemName ?? sale.productName ?? product?.name,
@@ -42,10 +47,10 @@ export async function buildSalesCsv(): Promise<CsvResult> {
       sale.businessLine ?? sale.businessType ?? product?.businessLine ?? product?.businessType,
       sale.category ?? product?.category ?? '',
       sale.notes ?? sale.note ?? '',
-      sale.costPerItem ?? product?.cost ?? '',
+      costPerItem,
       sale.profit ?? sale.estimatedProfit,
       sale.date,
-      getProductSellUnitDescription(sale),
+      sale.sellUnitType,
       getProductPackSize(sale) > 1 ? getProductPackSize(sale) : '',
     ];
   });
