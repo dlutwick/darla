@@ -59,7 +59,7 @@ async function main() {
   global.CustomEvent = function CustomEvent(name) { this.type = name; };
 
   const { loadTs } = createLoader();
-  const store = loadTs(path.join(root, 'src/features/business/store.ts'));
+  const store = loadTs(path.join(root, 'supabase/src/features/business/store.ts'));
 
   const seedState = {
     products: [],
@@ -106,7 +106,7 @@ async function main() {
   }
 
   const { loadTs: reloadTs } = createLoader();
-  const reloadedStore = reloadTs(path.join(root, 'src/features/business/store.ts'));
+  const reloadedStore = reloadTs(path.join(root, 'supabase/src/features/business/store.ts'));
   const afterRefresh = await reloadedStore.getSaleById(assignedSaleId);
   if (!afterRefresh) {
     throw new Error('Expected saved sale to be found again after simulated refresh.');

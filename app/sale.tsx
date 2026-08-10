@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import { AppScreen } from '../supabase/src/components/ui/AppScreen';
@@ -62,6 +62,7 @@ export default function AddSaleScreen() {
   const [saleNotFound, setSaleNotFound] = useState(false);
   const [products, setProducts] = useState<Awaited<ReturnType<typeof listProducts>>>([]);
   const [dashboard, setDashboard] = useState<Awaited<ReturnType<typeof getDashboardSnapshot>> | null>(null);
+  const currentSelectionRef = useRef({ businessType, entryMode, productId });
 
   const categoryOptions = useMemo(() => businessType === 'bakery' ? BAKERY_CATEGORIES : CRAFT_CATEGORIES, [businessType]);
   const filteredProducts = useMemo(() => products.filter((item) => item.businessType === businessType), [products, businessType]);
@@ -97,23 +98,28 @@ export default function AddSaleScreen() {
   const totalSale = parseFloat((Number(quantitySold || '0') * Number(effectiveSellingPrice || '0')).toFixed(2));
   const quantityLabel = entryMode === 'saved' && selectedProduct ? getProductSellUnitLabel(selectedProduct, Number(quantitySold || '1')) : 'units';
 
+  useEffect(() => {
+    currentSelectionRef.current = { businessType, entryMode, productId };
+  }, [businessType, entryMode, productId]);
+
   const refresh = useCallback(async () => {
     const [nextProducts, nextDashboard] = await Promise.all([listProducts(), getDashboardSnapshot()]);
     setProducts(nextProducts);
     setDashboard(nextDashboard);
 
-    const currentProducts = nextProducts.filter((item) => item.businessType === businessType);
-    const currentSelection = currentProducts.find((item) => item.productId === productId) ?? null;
+    const currentSelectionState = currentSelectionRef.current;
+    const currentProducts = nextProducts.filter((item) => item.businessType === currentSelectionState.businessType);
+    const currentSelection = currentProducts.find((item) => item.productId === currentSelectionState.productId) ?? null;
 
     if (!currentProducts.length) {
       setProductId('');
       return;
     }
 
-    if (!currentSelection && entryMode === 'saved') {
+    if (!currentSelection && currentSelectionState.entryMode === 'saved') {
       setProductId(currentProducts[0].productId);
     }
-  }, [businessType, entryMode, productId]);
+  }, []);
 
   useFocusEffect(useCallback(() => { void refresh(); }, [refresh]));
   useEffect(() => subscribeBusinessState(() => { void refresh(); }), [refresh]);
