@@ -1,3 +1,4 @@
+// @ts-nocheck
 import type { BusinessAppState } from './store';
 
 export const MASTER_IMPORT_SOURCE = {
@@ -12,6 +13,697 @@ export const MASTER_IMPORT_SOURCE = {
 
 export const MASTER_IMPORT_STATE = {
   "products": [
+    {
+          "productId": "product-phyllis-sewing-tea-towels",
+          "businessType": "craft",
+          "businessLine": "craft",
+          "productType": "my-product",
+          "name": "Tea Towels",
+          "category": "Sewing",
+          "cost": 0,
+          "sellingPrice": 12,
+          "priceOptions": [
+                {
+                      "label": "1 for $12",
+                      "quantity": 1,
+                      "totalPrice": 12
+                },
+                {
+                      "label": "2 for $22",
+                      "quantity": 2,
+                      "totalPrice": 22
+                }
+          ],
+          "vendorName": "Phyllis",
+          "commissionPercent": 0,
+          "sellUnitType": "each",
+          "customUnitName": null,
+          "packSize": 1,
+          "startingInventory": 0,
+          "reorderLevel": 0,
+          "notes": "Phyllis inventory. Individual item cost/profit not assigned yet; $500 total purchase is tracked separately as unallocated inventory purchase.",
+          "batchSize": null,
+          "batchCost": null,
+          "status": "active",
+          "archivedAt": null,
+          "createdAt": "2026-07-29T12:00:00.000Z",
+          "updatedAt": "2026-07-29T12:00:00.000Z"
+    },
+    {
+          "productId": "product-phyllis-sewing-aprons-child",
+          "businessType": "craft",
+          "businessLine": "craft",
+          "productType": "my-product",
+          "name": "Aprons - Child",
+          "category": "Sewing",
+          "cost": 0,
+          "sellingPrice": 18,
+          "priceOptions": [
+                {
+                      "label": "1 for $18",
+                      "quantity": 1,
+                      "totalPrice": 18
+                }
+          ],
+          "vendorName": "Phyllis",
+          "commissionPercent": 0,
+          "sellUnitType": "each",
+          "customUnitName": null,
+          "packSize": 1,
+          "startingInventory": 0,
+          "reorderLevel": 0,
+          "notes": "Phyllis inventory. Individual item cost/profit not assigned yet; $500 total purchase is tracked separately as unallocated inventory purchase.",
+          "batchSize": null,
+          "batchCost": null,
+          "status": "active",
+          "archivedAt": null,
+          "createdAt": "2026-07-29T12:00:00.000Z",
+          "updatedAt": "2026-07-29T12:00:00.000Z"
+    },
+    {
+          "productId": "product-phyllis-sewing-aprons-ladies",
+          "businessType": "craft",
+          "businessLine": "craft",
+          "productType": "my-product",
+          "name": "Aprons - Ladies",
+          "category": "Sewing",
+          "cost": 0,
+          "sellingPrice": 20,
+          "priceOptions": [
+                {
+                      "label": "1 for $20",
+                      "quantity": 1,
+                      "totalPrice": 20
+                }
+          ],
+          "vendorName": "Phyllis",
+          "commissionPercent": 0,
+          "sellUnitType": "each",
+          "customUnitName": null,
+          "packSize": 1,
+          "startingInventory": 0,
+          "reorderLevel": 0,
+          "notes": "Phyllis inventory. Individual item cost/profit not assigned yet; $500 total purchase is tracked separately as unallocated inventory purchase.",
+          "batchSize": null,
+          "batchCost": null,
+          "status": "active",
+          "archivedAt": null,
+          "createdAt": "2026-07-29T12:00:00.000Z",
+          "updatedAt": "2026-07-29T12:00:00.000Z"
+    },
+    {
+          "productId": "product-phyllis-sewing-aprons-mens",
+          "businessType": "craft",
+          "businessLine": "craft",
+          "productType": "my-product",
+          "name": "Aprons - Men's",
+          "category": "Sewing",
+          "cost": 0,
+          "sellingPrice": 30,
+          "priceOptions": [
+                {
+                      "label": "1 for $30",
+                      "quantity": 1,
+                      "totalPrice": 30
+                }
+          ],
+          "vendorName": "Phyllis",
+          "commissionPercent": 0,
+          "sellUnitType": "each",
+          "customUnitName": null,
+          "packSize": 1,
+          "startingInventory": 0,
+          "reorderLevel": 0,
+          "notes": "Phyllis inventory. Individual item cost/profit not assigned yet; $500 total purchase is tracked separately as unallocated inventory purchase.",
+          "batchSize": null,
+          "batchCost": null,
+          "status": "active",
+          "archivedAt": null,
+          "createdAt": "2026-07-29T12:00:00.000Z",
+          "updatedAt": "2026-07-29T12:00:00.000Z"
+    },
+    {
+          "productId": "product-phyllis-sewing-trademark",
+          "businessType": "craft",
+          "businessLine": "craft",
+          "productType": "my-product",
+          "name": "Trademark",
+          "category": "Sewing",
+          "cost": 0,
+          "sellingPrice": 28,
+          "priceOptions": [
+                {
+                      "label": "1 for $28",
+                      "quantity": 1,
+                      "totalPrice": 28
+                }
+          ],
+          "vendorName": "Phyllis",
+          "commissionPercent": 0,
+          "sellUnitType": "each",
+          "customUnitName": null,
+          "packSize": 1,
+          "startingInventory": 0,
+          "reorderLevel": 0,
+          "notes": "Phyllis inventory. Individual item cost/profit not assigned yet; $500 total purchase is tracked separately as unallocated inventory purchase.",
+          "batchSize": null,
+          "batchCost": null,
+          "status": "active",
+          "archivedAt": null,
+          "createdAt": "2026-07-29T12:00:00.000Z",
+          "updatedAt": "2026-07-29T12:00:00.000Z"
+    },
+    {
+          "productId": "product-phyllis-sewing-wreaths-seasonal",
+          "businessType": "craft",
+          "businessLine": "craft",
+          "productType": "my-product",
+          "name": "Wreaths - Seasonal",
+          "category": "Sewing",
+          "cost": 0,
+          "sellingPrice": 50,
+          "priceOptions": [
+                {
+                      "label": "Seasonal wreath - $50",
+                      "quantity": 1,
+                      "totalPrice": 50
+                },
+                {
+                      "label": "Seasonal wreath - $75",
+                      "quantity": 1,
+                      "totalPrice": 75
+                }
+          ],
+          "vendorName": "Phyllis",
+          "commissionPercent": 0,
+          "sellUnitType": "each",
+          "customUnitName": null,
+          "packSize": 1,
+          "startingInventory": 0,
+          "reorderLevel": 0,
+          "notes": "Phyllis inventory. Individual item cost/profit not assigned yet; $500 total purchase is tracked separately as unallocated inventory purchase.",
+          "batchSize": null,
+          "batchCost": null,
+          "status": "active",
+          "archivedAt": null,
+          "createdAt": "2026-07-29T12:00:00.000Z",
+          "updatedAt": "2026-07-29T12:00:00.000Z"
+    },
+    {
+          "productId": "product-phyllis-sewing-bowl-kozies-small",
+          "businessType": "craft",
+          "businessLine": "craft",
+          "productType": "my-product",
+          "name": "Bowl Kozies - Small",
+          "category": "Sewing",
+          "cost": 0,
+          "sellingPrice": 12,
+          "priceOptions": [
+                {
+                      "label": "1 for $12",
+                      "quantity": 1,
+                      "totalPrice": 12
+                }
+          ],
+          "vendorName": "Phyllis",
+          "commissionPercent": 0,
+          "sellUnitType": "each",
+          "customUnitName": null,
+          "packSize": 1,
+          "startingInventory": 0,
+          "reorderLevel": 0,
+          "notes": "Phyllis inventory. Individual item cost/profit not assigned yet; $500 total purchase is tracked separately as unallocated inventory purchase.",
+          "batchSize": null,
+          "batchCost": null,
+          "status": "active",
+          "archivedAt": null,
+          "createdAt": "2026-07-29T12:00:00.000Z",
+          "updatedAt": "2026-07-29T12:00:00.000Z"
+    },
+    {
+          "productId": "product-phyllis-sewing-bowl-kozies-medium",
+          "businessType": "craft",
+          "businessLine": "craft",
+          "productType": "my-product",
+          "name": "Bowl Kozies - Medium",
+          "category": "Sewing",
+          "cost": 0,
+          "sellingPrice": 13,
+          "priceOptions": [
+                {
+                      "label": "1 for $13",
+                      "quantity": 1,
+                      "totalPrice": 13
+                }
+          ],
+          "vendorName": "Phyllis",
+          "commissionPercent": 0,
+          "sellUnitType": "each",
+          "customUnitName": null,
+          "packSize": 1,
+          "startingInventory": 0,
+          "reorderLevel": 0,
+          "notes": "Phyllis inventory. Individual item cost/profit not assigned yet; $500 total purchase is tracked separately as unallocated inventory purchase.",
+          "batchSize": null,
+          "batchCost": null,
+          "status": "active",
+          "archivedAt": null,
+          "createdAt": "2026-07-29T12:00:00.000Z",
+          "updatedAt": "2026-07-29T12:00:00.000Z"
+    },
+    {
+          "productId": "product-phyllis-sewing-bowl-kozies-large",
+          "businessType": "craft",
+          "businessLine": "craft",
+          "productType": "my-product",
+          "name": "Bowl Kozies - Large",
+          "category": "Sewing",
+          "cost": 0,
+          "sellingPrice": 14,
+          "priceOptions": [
+                {
+                      "label": "1 for $14",
+                      "quantity": 1,
+                      "totalPrice": 14
+                }
+          ],
+          "vendorName": "Phyllis",
+          "commissionPercent": 0,
+          "sellUnitType": "each",
+          "customUnitName": null,
+          "packSize": 1,
+          "startingInventory": 0,
+          "reorderLevel": 0,
+          "notes": "Phyllis inventory. Individual item cost/profit not assigned yet; $500 total purchase is tracked separately as unallocated inventory purchase.",
+          "batchSize": null,
+          "batchCost": null,
+          "status": "active",
+          "archivedAt": null,
+          "createdAt": "2026-07-29T12:00:00.000Z",
+          "updatedAt": "2026-07-29T12:00:00.000Z"
+    },
+    {
+          "productId": "product-phyllis-sewing-dog-handkerchief-small",
+          "businessType": "craft",
+          "businessLine": "craft",
+          "productType": "my-product",
+          "name": "Dog Handkerchief - Small",
+          "category": "Sewing",
+          "cost": 0,
+          "sellingPrice": 7,
+          "priceOptions": [
+                {
+                      "label": "1 for $7",
+                      "quantity": 1,
+                      "totalPrice": 7
+                }
+          ],
+          "vendorName": "Phyllis",
+          "commissionPercent": 0,
+          "sellUnitType": "each",
+          "customUnitName": null,
+          "packSize": 1,
+          "startingInventory": 0,
+          "reorderLevel": 0,
+          "notes": "Phyllis inventory. Individual item cost/profit not assigned yet; $500 total purchase is tracked separately as unallocated inventory purchase.",
+          "batchSize": null,
+          "batchCost": null,
+          "status": "active",
+          "archivedAt": null,
+          "createdAt": "2026-07-29T12:00:00.000Z",
+          "updatedAt": "2026-07-29T12:00:00.000Z"
+    },
+    {
+          "productId": "product-phyllis-sewing-dog-handkerchief-medium",
+          "businessType": "craft",
+          "businessLine": "craft",
+          "productType": "my-product",
+          "name": "Dog Handkerchief - Medium",
+          "category": "Sewing",
+          "cost": 0,
+          "sellingPrice": 8,
+          "priceOptions": [
+                {
+                      "label": "1 for $8",
+                      "quantity": 1,
+                      "totalPrice": 8
+                }
+          ],
+          "vendorName": "Phyllis",
+          "commissionPercent": 0,
+          "sellUnitType": "each",
+          "customUnitName": null,
+          "packSize": 1,
+          "startingInventory": 0,
+          "reorderLevel": 0,
+          "notes": "Phyllis inventory. Individual item cost/profit not assigned yet; $500 total purchase is tracked separately as unallocated inventory purchase.",
+          "batchSize": null,
+          "batchCost": null,
+          "status": "active",
+          "archivedAt": null,
+          "createdAt": "2026-07-29T12:00:00.000Z",
+          "updatedAt": "2026-07-29T12:00:00.000Z"
+    },
+    {
+          "productId": "product-phyllis-sewing-dog-handkerchief-large",
+          "businessType": "craft",
+          "businessLine": "craft",
+          "productType": "my-product",
+          "name": "Dog Handkerchief - Large",
+          "category": "Sewing",
+          "cost": 0,
+          "sellingPrice": 9,
+          "priceOptions": [
+                {
+                      "label": "1 for $9",
+                      "quantity": 1,
+                      "totalPrice": 9
+                }
+          ],
+          "vendorName": "Phyllis",
+          "commissionPercent": 0,
+          "sellUnitType": "each",
+          "customUnitName": null,
+          "packSize": 1,
+          "startingInventory": 0,
+          "reorderLevel": 0,
+          "notes": "Phyllis inventory. Individual item cost/profit not assigned yet; $500 total purchase is tracked separately as unallocated inventory purchase.",
+          "batchSize": null,
+          "batchCost": null,
+          "status": "active",
+          "archivedAt": null,
+          "createdAt": "2026-07-29T12:00:00.000Z",
+          "updatedAt": "2026-07-29T12:00:00.000Z"
+    },
+    {
+          "productId": "product-phyllis-sewing-burlap-beehive-small",
+          "businessType": "craft",
+          "businessLine": "craft",
+          "productType": "my-product",
+          "name": "Burlap Beehive - Small",
+          "category": "Sewing",
+          "cost": 0,
+          "sellingPrice": 10,
+          "priceOptions": [
+                {
+                      "label": "1 for $10",
+                      "quantity": 1,
+                      "totalPrice": 10
+                }
+          ],
+          "vendorName": "Phyllis",
+          "commissionPercent": 0,
+          "sellUnitType": "each",
+          "customUnitName": null,
+          "packSize": 1,
+          "startingInventory": 0,
+          "reorderLevel": 0,
+          "notes": "Phyllis inventory. Individual item cost/profit not assigned yet; $500 total purchase is tracked separately as unallocated inventory purchase.",
+          "batchSize": null,
+          "batchCost": null,
+          "status": "active",
+          "archivedAt": null,
+          "createdAt": "2026-07-29T12:00:00.000Z",
+          "updatedAt": "2026-07-29T12:00:00.000Z"
+    },
+    {
+          "productId": "product-phyllis-sewing-burlap-beehive-medium",
+          "businessType": "craft",
+          "businessLine": "craft",
+          "productType": "my-product",
+          "name": "Burlap Beehive - Medium",
+          "category": "Sewing",
+          "cost": 0,
+          "sellingPrice": 15,
+          "priceOptions": [
+                {
+                      "label": "1 for $15",
+                      "quantity": 1,
+                      "totalPrice": 15
+                }
+          ],
+          "vendorName": "Phyllis",
+          "commissionPercent": 0,
+          "sellUnitType": "each",
+          "customUnitName": null,
+          "packSize": 1,
+          "startingInventory": 0,
+          "reorderLevel": 0,
+          "notes": "Phyllis inventory. Individual item cost/profit not assigned yet; $500 total purchase is tracked separately as unallocated inventory purchase.",
+          "batchSize": null,
+          "batchCost": null,
+          "status": "active",
+          "archivedAt": null,
+          "createdAt": "2026-07-29T12:00:00.000Z",
+          "updatedAt": "2026-07-29T12:00:00.000Z"
+    },
+    {
+          "productId": "product-phyllis-sewing-hair-scrunchies",
+          "businessType": "craft",
+          "businessLine": "craft",
+          "productType": "my-product",
+          "name": "Hair Scrunchies",
+          "category": "Sewing",
+          "cost": 0,
+          "sellingPrice": 6,
+          "priceOptions": [
+                {
+                      "label": "1 for $6",
+                      "quantity": 1,
+                      "totalPrice": 6
+                },
+                {
+                      "label": "2 for $10",
+                      "quantity": 2,
+                      "totalPrice": 10
+                }
+          ],
+          "vendorName": "Phyllis",
+          "commissionPercent": 0,
+          "sellUnitType": "each",
+          "customUnitName": null,
+          "packSize": 1,
+          "startingInventory": 0,
+          "reorderLevel": 0,
+          "notes": "Phyllis inventory. Individual item cost/profit not assigned yet; $500 total purchase is tracked separately as unallocated inventory purchase.",
+          "batchSize": null,
+          "batchCost": null,
+          "status": "active",
+          "archivedAt": null,
+          "createdAt": "2026-07-29T12:00:00.000Z",
+          "updatedAt": "2026-07-29T12:00:00.000Z"
+    },
+    {
+          "productId": "product-phyllis-christmas-decorations-angel-burlap",
+          "businessType": "craft",
+          "businessLine": "craft",
+          "productType": "my-product",
+          "name": "Angel - Burlap",
+          "category": "Christmas Decorations",
+          "cost": 0,
+          "sellingPrice": 6,
+          "priceOptions": [
+                {
+                      "label": "1 for $6",
+                      "quantity": 1,
+                      "totalPrice": 6
+                },
+                {
+                      "label": "2 for $10",
+                      "quantity": 2,
+                      "totalPrice": 10
+                }
+          ],
+          "vendorName": "Phyllis",
+          "commissionPercent": 0,
+          "sellUnitType": "each",
+          "customUnitName": null,
+          "packSize": 1,
+          "startingInventory": 0,
+          "reorderLevel": 0,
+          "notes": "Phyllis inventory. Individual item cost/profit not assigned yet; $500 total purchase is tracked separately as unallocated inventory purchase.",
+          "batchSize": null,
+          "batchCost": null,
+          "status": "active",
+          "archivedAt": null,
+          "createdAt": "2026-07-29T12:00:00.000Z",
+          "updatedAt": "2026-07-29T12:00:00.000Z"
+    },
+    {
+          "productId": "product-phyllis-christmas-decorations-gnomes",
+          "businessType": "craft",
+          "businessLine": "craft",
+          "productType": "my-product",
+          "name": "Gnomes",
+          "category": "Christmas Decorations",
+          "cost": 0,
+          "sellingPrice": 6,
+          "priceOptions": [
+                {
+                      "label": "1 for $6",
+                      "quantity": 1,
+                      "totalPrice": 6
+                },
+                {
+                      "label": "2 for $10",
+                      "quantity": 2,
+                      "totalPrice": 10
+                }
+          ],
+          "vendorName": "Phyllis",
+          "commissionPercent": 0,
+          "sellUnitType": "each",
+          "customUnitName": null,
+          "packSize": 1,
+          "startingInventory": 0,
+          "reorderLevel": 0,
+          "notes": "Phyllis inventory. Individual item cost/profit not assigned yet; $500 total purchase is tracked separately as unallocated inventory purchase.",
+          "batchSize": null,
+          "batchCost": null,
+          "status": "active",
+          "archivedAt": null,
+          "createdAt": "2026-07-29T12:00:00.000Z",
+          "updatedAt": "2026-07-29T12:00:00.000Z"
+    },
+    {
+          "productId": "product-phyllis-christmas-decorations-fabric-stars",
+          "businessType": "craft",
+          "businessLine": "craft",
+          "productType": "my-product",
+          "name": "Fabric Stars",
+          "category": "Christmas Decorations",
+          "cost": 0,
+          "sellingPrice": 6,
+          "priceOptions": [
+                {
+                      "label": "1 for $6",
+                      "quantity": 1,
+                      "totalPrice": 6
+                },
+                {
+                      "label": "2 for $10",
+                      "quantity": 2,
+                      "totalPrice": 10
+                }
+          ],
+          "vendorName": "Phyllis",
+          "commissionPercent": 0,
+          "sellUnitType": "each",
+          "customUnitName": null,
+          "packSize": 1,
+          "startingInventory": 0,
+          "reorderLevel": 0,
+          "notes": "Phyllis inventory. Individual item cost/profit not assigned yet; $500 total purchase is tracked separately as unallocated inventory purchase.",
+          "batchSize": null,
+          "batchCost": null,
+          "status": "active",
+          "archivedAt": null,
+          "createdAt": "2026-07-29T12:00:00.000Z",
+          "updatedAt": "2026-07-29T12:00:00.000Z"
+    },
+    {
+          "productId": "product-phyllis-christmas-decorations-candy-canes",
+          "businessType": "craft",
+          "businessLine": "craft",
+          "productType": "my-product",
+          "name": "Candy Canes",
+          "category": "Christmas Decorations",
+          "cost": 0,
+          "sellingPrice": 6,
+          "priceOptions": [
+                {
+                      "label": "1 for $6",
+                      "quantity": 1,
+                      "totalPrice": 6
+                },
+                {
+                      "label": "2 for $10",
+                      "quantity": 2,
+                      "totalPrice": 10
+                }
+          ],
+          "vendorName": "Phyllis",
+          "commissionPercent": 0,
+          "sellUnitType": "each",
+          "customUnitName": null,
+          "packSize": 1,
+          "startingInventory": 0,
+          "reorderLevel": 0,
+          "notes": "Phyllis inventory. Individual item cost/profit not assigned yet; $500 total purchase is tracked separately as unallocated inventory purchase.",
+          "batchSize": null,
+          "batchCost": null,
+          "status": "active",
+          "archivedAt": null,
+          "createdAt": "2026-07-29T12:00:00.000Z",
+          "updatedAt": "2026-07-29T12:00:00.000Z"
+    },
+    {
+          "productId": "product-phyllis-christmas-decorations-hand-embroidered-miniature-christmas-pillow",
+          "businessType": "craft",
+          "businessLine": "craft",
+          "productType": "my-product",
+          "name": "Hand-Embroidered Miniature Christmas Pillow",
+          "category": "Christmas Decorations",
+          "cost": 0,
+          "sellingPrice": 10,
+          "priceOptions": [
+                {
+                      "label": "1 for $10",
+                      "quantity": 1,
+                      "totalPrice": 10
+                }
+          ],
+          "vendorName": "Phyllis",
+          "commissionPercent": 0,
+          "sellUnitType": "each",
+          "customUnitName": null,
+          "packSize": 1,
+          "startingInventory": 0,
+          "reorderLevel": 0,
+          "notes": "Phyllis inventory. Individual item cost/profit not assigned yet; $500 total purchase is tracked separately as unallocated inventory purchase.",
+          "batchSize": null,
+          "batchCost": null,
+          "status": "active",
+          "archivedAt": null,
+          "createdAt": "2026-07-29T12:00:00.000Z",
+          "updatedAt": "2026-07-29T12:00:00.000Z"
+    },
+    {
+          "productId": "product-phyllis-christmas-decorations-christmas-bows",
+          "businessType": "craft",
+          "businessLine": "craft",
+          "productType": "my-product",
+          "name": "Christmas Bows",
+          "category": "Christmas Decorations",
+          "cost": 0,
+          "sellingPrice": 4,
+          "priceOptions": [
+                {
+                      "label": "1 for $4",
+                      "quantity": 1,
+                      "totalPrice": 4
+                },
+                {
+                      "label": "2 for $7",
+                      "quantity": 2,
+                      "totalPrice": 7
+                }
+          ],
+          "vendorName": "Phyllis",
+          "commissionPercent": 0,
+          "sellUnitType": "each",
+          "customUnitName": null,
+          "packSize": 1,
+          "startingInventory": 0,
+          "reorderLevel": 0,
+          "notes": "Phyllis inventory. Individual item cost/profit not assigned yet; $500 total purchase is tracked separately as unallocated inventory purchase.",
+          "batchSize": null,
+          "batchCost": null,
+          "status": "active",
+          "archivedAt": null,
+          "createdAt": "2026-07-29T12:00:00.000Z",
+          "updatedAt": "2026-07-29T12:00:00.000Z"
+    },
     {
       "productId": "product-9a8ad2bf-ba66-4bb3-b5aa-035acdeef214",
       "businessType": "craft",
@@ -6488,6 +7180,19 @@ export const MASTER_IMPORT_STATE = {
     }
   ],
   "orders": [],
+  "inventoryPurchases": [
+    {
+      "purchaseId": "inventory-purchase-phyllis-20260729",
+      "businessType": "craft",
+      "businessLine": "craft",
+      "vendorName": "Phyllis",
+      "amount": 500,
+      "allocationStatus": "unallocated",
+      "notes": "Phyllis inventory purchased together for $500 total. Do not allocate to individual product cost/profit until Darla decides the allocation method.",
+      "createdAt": "2026-07-29T12:00:00.000Z",
+      "updatedAt": "2026-07-29T12:00:00.000Z"
+    }
+  ],
   "helperCommissions": [
     {
       "helperCommissionId": "helper-commission-769ee3d4-1ab6-4213-af43-4defa311ae6d",

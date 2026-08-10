@@ -44,6 +44,7 @@ export type ProductRecord = {
   category: string;
   cost: number;
   sellingPrice: number;
+  priceOptions?: ProductPriceOption[];
   vendorName: string | null;
   commissionPercent: number;
   sellUnitType: SellUnitType;
@@ -58,6 +59,12 @@ export type ProductRecord = {
   archivedAt?: string | null;
   createdAt: string;
   updatedAt: string;
+};
+
+export type ProductPriceOption = {
+  label: string;
+  quantity: number;
+  totalPrice: number;
 };
 
 export type SaleRecord = {
@@ -78,6 +85,9 @@ export type SaleRecord = {
   quantity: number;
   sellingPrice: number;
   unitPrice: number;
+  priceOptionLabel?: string | null;
+  priceOptionQuantity?: number | null;
+  priceOptionTotalPrice?: number | null;
   date: ISODate;
   note: string | null;
   notes: string | null;
@@ -187,6 +197,18 @@ export type OrderRecord = {
   updatedAt: string;
 };
 
+export type InventoryPurchaseRecord = {
+  purchaseId: string;
+  businessType: BusinessType;
+  businessLine: BusinessType;
+  vendorName: string;
+  amount: number;
+  allocationStatus: 'unallocated' | 'allocated';
+  notes: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
 export type BusinessAppState = {
   products: ProductRecord[];
   sales: SaleRecord[];
@@ -195,6 +217,7 @@ export type BusinessAppState = {
   restocks: RestockRecord[];
   orders: OrderRecord[];
   helperCommissions: HelperCommissionRecord[];
+  inventoryPurchases: InventoryPurchaseRecord[];
 };
 
 export type BusinessSummary = {
@@ -219,7 +242,7 @@ let cachedState: BusinessAppState | null = null;
 let secureStoreModulePromise: Promise<{ getItemAsync: (key: string) => Promise<string | null>, setItemAsync: (key: string, value: string) => Promise<void> } | null> | null = null;
 
 export const BAKERY_CATEGORIES = ['Butter Tarts', 'Bread', 'Cookies', 'Cinnamon Rolls', 'Pies', 'Fudge'];
-export const CRAFT_CATEGORIES = ['Laser Crafts', 'Sewing', 'Sublimation', 'Wreaths', 'Ornaments', 'Jewelry Boxes', 'Towels', 'Tumblers', 'Seasonal Items'];
+export const CRAFT_CATEGORIES = ['Laser Crafts', 'Sewing', 'Sublimation', 'Wreaths', 'Ornaments', 'Jewelry Boxes', 'Towels', 'Tumblers', 'Seasonal Items', 'Christmas Decorations'];
 export const PAYMENT_TYPES: PaymentType[] = ['cash', 'e-transfer', 'card', 'other'];
 export const ORDER_STATUSES: OrderStatus[] = ['new', 'in progress', 'ready', 'picked up', 'paid'];
 export const SELL_UNIT_TYPES: SellUnitType[] = ['each', 'loaf', 'pack', 'custom'];
@@ -312,6 +335,9 @@ function normalizeState(input?: Partial<BusinessAppState> | null): BusinessAppSt
     helperCommissions: Array.isArray((input as Partial<BusinessAppState> & { helperCommissions?: HelperCommissionRecord[] })?.helperCommissions)
       ? (input as Partial<BusinessAppState> & { helperCommissions?: HelperCommissionRecord[] }).helperCommissions!.map((item) => normalizeHelperCommissionRecord(item as Partial<HelperCommissionRecord>))
       : [],
+    inventoryPurchases: Array.isArray((input as Partial<BusinessAppState> & { inventoryPurchases?: InventoryPurchaseRecord[] })?.inventoryPurchases)
+      ? (input as Partial<BusinessAppState> & { inventoryPurchases?: InventoryPurchaseRecord[] }).inventoryPurchases!.map((item) => normalizeInventoryPurchaseRecord(item as Partial<InventoryPurchaseRecord>))
+      : [],
   };
 }
 
@@ -329,6 +355,25 @@ function normalizeExpenseType(value: unknown): ExpenseType {
 
 function normalizePaymentType(value: unknown): PaymentType {
   return value === 'e-transfer' || value === 'card' || value === 'other' ? value : 'cash';
+}
+
+function normalizePriceOptions(value: unknown): ProductPriceOption[] | undefined {
+  if (!Array.isArray(value)) {
+    return undefined;
+  }
+
+  const options = value
+    .map((item) => {
+      const option = item as Partial<ProductPriceOption>;
+      const quantity = Math.max(1, toSafeNumber(option.quantity, 1));
+      const totalPrice = Number(toSafeNumber(option.totalPrice).toFixed(2));
+      const label = String(option.label ?? '').trim() || `${formatNumber(quantity, 0)} for $${formatNumber(totalPrice, 2)}`;
+
+      return totalPrice > 0 ? { label, quantity, totalPrice } : null;
+    })
+    .filter((item): item is ProductPriceOption => Boolean(item));
+
+  return options.length ? options : undefined;
 }
 
 function normalizeBusinessType(value: unknown): BusinessType {
@@ -391,6 +436,21 @@ function normalizeHelperCommissionRecord(input: Partial<HelperCommissionRecord>)
     datePaid: Boolean(input.paid) ? normalizeOptionalText(input.datePaid) : null,
     notes: normalizeOptionalText(input.notes),
     linkedExpenseId: normalizeOptionalText(input.linkedExpenseId),
+    createdAt: String(input.createdAt ?? nowIso()),
+    updatedAt: String(input.updatedAt ?? input.createdAt ?? nowIso()),
+  };
+}
+
+function normalizeInventoryPurchaseRecord(input: Partial<InventoryPurchaseRecord>): InventoryPurchaseRecord {
+  const businessType = normalizeBusinessType(input.businessType);
+  return {
+    purchaseId: String(input.purchaseId ?? createId('inventory-purchase')),
+    businessType,
+    businessLine: input.businessLine === 'craft' || businessType === 'craft' ? 'craft' : 'bakery',
+    vendorName: String(input.vendorName ?? '').trim(),
+    amount: normalizeCurrency(input.amount),
+    allocationStatus: input.allocationStatus === 'allocated' ? 'allocated' : 'unallocated',
+    notes: normalizeOptionalText(input.notes),
     createdAt: String(input.createdAt ?? nowIso()),
     updatedAt: String(input.updatedAt ?? input.createdAt ?? nowIso()),
   };
@@ -488,6 +548,7 @@ function normalizeProductRecord(input: Partial<ProductRecord>): ProductRecord {
     category: productIdentity.category,
     cost: normalizedCost,
     sellingPrice: isWristKeyFobProduct(productIdentity) ? WRIST_KEY_FOB_PRICE : Number(toSafeNumber(input.sellingPrice).toFixed(2)),
+    priceOptions: normalizePriceOptions(input.priceOptions),
     vendorName: inferLegacyVendorName(input, productType),
     commissionPercent: productType === 'third-party'
       ? normalizeCommissionPercent((input as Partial<ProductRecord> & { commissionPercent?: number }).commissionPercent, 25)
@@ -682,6 +743,7 @@ const MASTER_IMPORT_PRODUCT_CORRECTION_FIELDS: Array<keyof ProductRecord> = [
   'category',
   'vendorName',
   'commissionPercent',
+  'priceOptions',
   'sellUnitType',
   'customUnitName',
   'packSize',
@@ -702,7 +764,9 @@ function migrateMasterImportProductCorrections(state: BusinessAppState) {
 
     const next: ProductRecord = { ...product };
     for (const field of MASTER_IMPORT_PRODUCT_CORRECTION_FIELDS) {
-      if (next[field] !== canonical[field]) {
+      const currentValue = field === 'priceOptions' ? JSON.stringify(next[field] ?? null) : next[field];
+      const canonicalValue = field === 'priceOptions' ? JSON.stringify(canonical[field] ?? null) : canonical[field];
+      if (currentValue !== canonicalValue) {
         (next as Record<keyof ProductRecord, unknown>)[field] = canonical[field];
         changed = true;
       }
@@ -774,6 +838,18 @@ function migrateMasterImportSalesCorrections(state: BusinessAppState) {
   };
 }
 
+function migrateMissingMasterImportProducts(state: BusinessAppState) {
+  const existingProductIds = new Set(state.products.map((product) => product.productId));
+  const missingProducts = MASTER_IMPORT_STATE.products
+    .filter((product) => !existingProductIds.has(product.productId))
+    .map((product) => normalizeProductRecord(product as Partial<ProductRecord>));
+
+  return {
+    state: missingProducts.length ? { ...state, products: sortProducts([...state.products, ...missingProducts]) } : state,
+    changed: missingProducts.length > 0,
+  };
+}
+
 function migrateMissingMasterImportSales(state: BusinessAppState) {
   const existingSaleIds = new Set(state.sales.map((sale) => sale.saleId));
   const missingSales = MASTER_IMPORT_STATE.sales.filter((sale) => !existingSaleIds.has(sale.saleId));
@@ -784,20 +860,37 @@ function migrateMissingMasterImportSales(state: BusinessAppState) {
   };
 }
 
+function migrateMissingInventoryPurchases(state: BusinessAppState) {
+  const source = (MASTER_IMPORT_STATE as Partial<BusinessAppState>).inventoryPurchases ?? [];
+  const existingPurchaseIds = new Set(state.inventoryPurchases.map((purchase) => purchase.purchaseId));
+  const missingPurchases = source
+    .filter((purchase) => !existingPurchaseIds.has(purchase.purchaseId))
+    .map((purchase) => normalizeInventoryPurchaseRecord(purchase as Partial<InventoryPurchaseRecord>));
+
+  return {
+    state: missingPurchases.length ? { ...state, inventoryPurchases: [...state.inventoryPurchases, ...missingPurchases] } : state,
+    changed: missingPurchases.length > 0,
+  };
+}
+
 function migrateBusinessState(state: BusinessAppState) {
   const packagedProductsMigration = migrateSuggestedPackagedProducts(state);
   const donnaMigration = migrateDonnaThirdPartyProducts(packagedProductsMigration.state);
-  const masterImportProductsMigration = migrateMasterImportProductCorrections(donnaMigration.state);
+  const missingMasterImportProductsMigration = migrateMissingMasterImportProducts(donnaMigration.state);
+  const masterImportProductsMigration = migrateMasterImportProductCorrections(missingMasterImportProductsMigration.state);
   const masterImportSalesMigration = migrateMasterImportSalesCorrections(masterImportProductsMigration.state);
   const missingMasterImportSalesMigration = migrateMissingMasterImportSales(masterImportSalesMigration.state);
+  const missingInventoryPurchasesMigration = migrateMissingInventoryPurchases(missingMasterImportSalesMigration.state);
 
   return {
-    state: missingMasterImportSalesMigration.state,
+    state: missingInventoryPurchasesMigration.state,
     changed: packagedProductsMigration.changed
       || donnaMigration.changed
+      || missingMasterImportProductsMigration.changed
       || masterImportProductsMigration.changed
       || masterImportSalesMigration.changed
-      || missingMasterImportSalesMigration.changed,
+      || missingMasterImportSalesMigration.changed
+      || missingInventoryPurchasesMigration.changed,
   };
 }
 
@@ -1426,6 +1519,9 @@ function normalizeSaleRecord(sale: Partial<SaleRecord>, products: ProductRecord[
     quantity: toSafeNumber(sale.quantity ?? sale.quantitySold),
     sellingPrice: unitPrice,
     unitPrice,
+    priceOptionLabel: normalizeOptionalText(sale.priceOptionLabel),
+    priceOptionQuantity: sale.priceOptionQuantity != null ? toSafeNumber(sale.priceOptionQuantity) : null,
+    priceOptionTotalPrice: sale.priceOptionTotalPrice != null ? Number(toSafeNumber(sale.priceOptionTotalPrice).toFixed(2)) : null,
     date: resolvedDate,
     note: notes,
     notes,
@@ -1691,6 +1787,7 @@ export async function addProduct(input: {
   category: string;
   cost: number;
   sellingPrice: number;
+  priceOptions?: ProductPriceOption[];
   vendorName?: string | null;
   commissionPercent?: number | null;
   sellUnitType?: SellUnitType;
@@ -1713,6 +1810,7 @@ export async function addProduct(input: {
     category: input.category.trim(),
     cost: Number(((input.productType ?? 'my-product') === 'third-party' ? 0 : input.cost).toFixed(2)),
     sellingPrice: Number(input.sellingPrice.toFixed(2)),
+    priceOptions: normalizePriceOptions(input.priceOptions),
     vendorName: normalizeVendorName(input.vendorName ?? null),
     commissionPercent: (input.productType ?? 'my-product') === 'third-party' ? normalizeCommissionPercent(input.commissionPercent ?? 25, 25) : 0,
     sellUnitType: input.sellUnitType ?? 'each',
@@ -1740,6 +1838,7 @@ export async function updateProduct(productId: string, input: {
   category: string;
   cost: number;
   sellingPrice: number;
+  priceOptions?: ProductPriceOption[];
   vendorName?: string | null;
   commissionPercent?: number | null;
   sellUnitType?: SellUnitType;
@@ -1963,6 +2062,9 @@ export async function addSale(input: {
   quantitySold: number;
   date: ISODate;
   sellingPrice?: number | null;
+  priceOptionLabel?: string | null;
+  priceOptionQuantity?: number | null;
+  priceOptionTotalPrice?: number | null;
   note?: string | null;
   businessType?: BusinessType;
   businessLine?: BusinessType;
@@ -2031,6 +2133,9 @@ export async function addSale(input: {
       quantity: input.quantitySold,
       sellingPrice: salePrice,
       unitPrice: salePrice,
+      priceOptionLabel: normalizeOptionalText(input.priceOptionLabel),
+      priceOptionQuantity: input.priceOptionQuantity ?? null,
+      priceOptionTotalPrice: input.priceOptionTotalPrice ?? null,
       date: input.date,
       note: input.note?.trim() ? input.note.trim() : null,
       notes: input.note?.trim() ? input.note.trim() : null,
@@ -2079,6 +2184,9 @@ export async function addSale(input: {
     quantity: input.quantitySold,
     sellingPrice: salePrice,
     unitPrice: salePrice,
+    priceOptionLabel: input.priceOptionLabel ?? null,
+    priceOptionQuantity: input.priceOptionQuantity ?? null,
+    priceOptionTotalPrice: input.priceOptionTotalPrice ?? null,
     date: input.date,
     note: input.note?.trim() ? input.note.trim() : null,
     notes: input.note?.trim() ? input.note.trim() : null,
@@ -2108,6 +2216,9 @@ export async function updateSale(saleId: string, input: {
   quantitySold: number;
   date: ISODate;
   sellingPrice?: number | null;
+  priceOptionLabel?: string | null;
+  priceOptionQuantity?: number | null;
+  priceOptionTotalPrice?: number | null;
   note?: string | null;
   businessType?: BusinessType;
   businessLine?: BusinessType;
@@ -2181,6 +2292,9 @@ export async function updateSale(saleId: string, input: {
       quantity: input.quantitySold,
       sellingPrice: salePrice,
       unitPrice: salePrice,
+      priceOptionLabel: normalizeOptionalText(input.priceOptionLabel),
+      priceOptionQuantity: input.priceOptionQuantity ?? null,
+      priceOptionTotalPrice: input.priceOptionTotalPrice ?? null,
       date: input.date,
       note: input.note?.trim() ? input.note.trim() : null,
       notes: input.note?.trim() ? input.note.trim() : null,
@@ -2234,6 +2348,9 @@ export async function updateSale(saleId: string, input: {
     quantity: input.quantitySold,
     sellingPrice: salePrice,
     unitPrice: salePrice,
+    priceOptionLabel: input.priceOptionLabel ?? existing.priceOptionLabel ?? null,
+    priceOptionQuantity: input.priceOptionQuantity ?? existing.priceOptionQuantity ?? null,
+    priceOptionTotalPrice: input.priceOptionTotalPrice ?? existing.priceOptionTotalPrice ?? null,
     date: input.date,
     note: input.note?.trim() ? input.note.trim() : null,
     notes: input.note?.trim() ? input.note.trim() : null,

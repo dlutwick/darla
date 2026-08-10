@@ -14,6 +14,7 @@
     "verify:business-ui": "node scripts/playwright-business-flow.js",
     "verify:third-party": "node scripts/verify-third-party-commission.js",
     "verify:donna-cleanup": "node scripts/verify-donna-third-party-cleanup.js",
+    "verify:phyllis": "node scripts/verify-phyllis-inventory.js",
     "verify:manual-sale": "node scripts/verify-manual-sale-entry.js",
     "verify:sale-refresh": "node scripts/verify-sale-refresh.js"
   },

@@ -49,6 +49,7 @@ export default function AddSaleScreen() {
   const [note, setNote] = useState('');
   const [customPriceEnabled, setCustomPriceEnabled] = useState(false);
   const [customPrice, setCustomPrice] = useState('');
+  const [selectedPriceOptionLabel, setSelectedPriceOptionLabel] = useState('');
   const [manualProductName, setManualProductName] = useState('');
   const [manualCategory, setManualCategory] = useState('');
   const [manualProductType, setManualProductType] = useState<ProductType>('my-product');
@@ -80,9 +81,15 @@ export default function AddSaleScreen() {
       });
   }, [categoryFilter, dashboard?.productSnapshots, filteredProducts, productFilter, searchText]);
   const selectedProduct = filteredProducts.find((item) => item.productId === productId) ?? null;
+  const savedPriceOptions = selectedProduct?.priceOptions ?? [];
+  const selectedPriceOption = !customPriceEnabled
+    ? savedPriceOptions.find((option) => option.label === selectedPriceOptionLabel) ?? null
+    : null;
   const savedEffectiveSellingPrice = selectedProduct
     ? customPriceEnabled && customPrice.trim()
       ? Number(customPrice)
+      : selectedPriceOption
+        ? Number((selectedPriceOption.totalPrice / selectedPriceOption.quantity).toFixed(2))
       : selectedProduct.sellingPrice
     : 0;
   const manualEffectiveSellingPrice = Number(manualPriceValue(customPrice));
@@ -141,6 +148,7 @@ export default function AddSaleScreen() {
       const matchedProduct = products.find((item) => item.productId === existing.productId) ?? null;
       setBusinessType(existing.businessType);
       setQuantitySold(String(existing.quantitySold));
+      setSelectedPriceOptionLabel(existing.priceOptionLabel ?? '');
       setDate(existing.date);
       const savedNote = existing.note ?? existing.notes ?? '';
       setNoteEnabled(Boolean(savedNote));
@@ -150,8 +158,8 @@ export default function AddSaleScreen() {
         setEntryMode('saved');
         setProductId(existing.productId);
         const hasCustomPrice = Math.abs(Number(existing.unitPrice ?? existing.sellingPrice) - Number(matchedProduct.sellingPrice ?? existing.unitPrice ?? existing.sellingPrice)) > 0.009;
-        setCustomPriceEnabled(hasCustomPrice);
-        setCustomPrice(hasCustomPrice ? String(existing.unitPrice ?? existing.sellingPrice) : '');
+        setCustomPriceEnabled(Boolean(!existing.priceOptionLabel && hasCustomPrice));
+        setCustomPrice(!existing.priceOptionLabel && hasCustomPrice ? String(existing.unitPrice ?? existing.sellingPrice) : '');
       } else {
         setEntryMode('manual');
         setProductId('');
@@ -179,17 +187,32 @@ export default function AddSaleScreen() {
   function adjustQuantity(change: number) {
     const current = Math.max(1, Number(quantitySold || '1'));
     const next = Math.max(1, current + change);
+    setSelectedPriceOptionLabel('');
     setQuantitySold(String(next));
+  }
+
+  function setManualQuantity(nextQuantity: string) {
+    setSelectedPriceOptionLabel('');
+    setQuantitySold(nextQuantity);
   }
 
   function selectProduct(nextProductId: string) {
     setProductId(nextProductId);
+    setSelectedPriceOptionLabel('');
     setCustomPriceEnabled(false);
     setCustomPrice('');
   }
 
+  function selectPriceOption(option: { label: string, quantity: number, totalPrice: number }) {
+    setSelectedPriceOptionLabel(option.label);
+    setCustomPriceEnabled(false);
+    setCustomPrice('');
+    setQuantitySold(String(option.quantity));
+  }
+
   function resetAfterSave(savedSaleName: string) {
     setQuantitySold('1');
+    setSelectedPriceOptionLabel('');
     setCustomPriceEnabled(false);
     setCustomPrice('');
     setNoteEnabled(false);
@@ -218,13 +241,23 @@ export default function AddSaleScreen() {
           throw new Error('Choose a saved product first.');
         }
 
-        const parsedPrice = customPriceEnabled && customPrice.trim() ? parsePositive(customPrice, 'Unit price') : undefined;
+        const parsedPrice = customPriceEnabled && customPrice.trim() ? parsePositive(customPrice, 'Unit price') : selectedPriceOption ? Number((selectedPriceOption.totalPrice / selectedPriceOption.quantity).toFixed(2)) : undefined;
+        const priceOptionDetails = selectedPriceOption ? {
+          priceOptionLabel: selectedPriceOption.label,
+          priceOptionQuantity: selectedPriceOption.quantity,
+          priceOptionTotalPrice: selectedPriceOption.totalPrice,
+        } : {
+          priceOptionLabel: null,
+          priceOptionQuantity: null,
+          priceOptionTotalPrice: null,
+        };
         const savedEntry = isEditing && editingSaleId
           ? await updateSale(editingSaleId, {
             productId: selectedProduct.productId,
             quantitySold: parsedQuantity,
             date,
             sellingPrice: parsedPrice,
+            ...priceOptionDetails,
             note: noteEnabled ? note : undefined,
           })
           : await addSale({
@@ -232,6 +265,7 @@ export default function AddSaleScreen() {
             quantitySold: parsedQuantity,
             date,
             sellingPrice: parsedPrice,
+            ...priceOptionDetails,
             note: noteEnabled ? note : undefined,
           });
 
@@ -424,7 +458,7 @@ export default function AddSaleScreen() {
             {rankedProducts.length ? rankedProducts.map((item) => (
               <Pressable key={item.productId} style={[styles.productChip, productId === item.productId ? styles.productChipActive : null]} onPress={() => selectProduct(item.productId)}>
                 <Text style={[styles.productTitle, productId === item.productId ? styles.productTitleActive : null]}>{item.name} — {getProductSellUnitDescription(item)}</Text>
-                <Text style={[styles.productMeta, productId === item.productId ? styles.productMetaActive : null]}>{item.category} · {item.productType === 'third-party' ? `3rd Party · ${item.vendorName || 'Vendor'} · ${formatNumber(item.commissionPercent, 0)}%` : 'My Product'} · {formatWithUnit(item.sellingPrice, '$', 2)} per {item.sellUnitType === 'pack' ? 'pack' : 'sell unit'}</Text>
+                <Text style={[styles.productMeta, productId === item.productId ? styles.productMetaActive : null]}>{item.category} · {item.productType === 'third-party' ? `3rd Party · ${item.vendorName || 'Vendor'} · ${formatNumber(item.commissionPercent, 0)}%` : `My Product${item.vendorName ? ` · ${item.vendorName}` : ''}`} · {formatWithUnit(item.sellingPrice, '$', 2)} per {item.sellUnitType === 'pack' ? 'pack' : 'sell unit'}</Text>
               </Pressable>
             )) : <Text style={styles.emptyText}>No saved products match these filters yet.</Text>}
           </View>
@@ -484,19 +518,36 @@ export default function AddSaleScreen() {
 
         <View style={styles.quickPickRow}>
           {[1, 2, 3, 4, 6].map((value) => (
-            <Pressable key={value} style={[styles.quickPickChip, Number(quantitySold || '0') === value ? styles.quickPickChipActive : null]} onPress={() => setQuantitySold(String(value))}>
+            <Pressable key={value} style={[styles.quickPickChip, Number(quantitySold || '0') === value ? styles.quickPickChipActive : null]} onPress={() => setManualQuantity(String(value))}>
               <Text style={[styles.quickPickLabel, Number(quantitySold || '0') === value ? styles.quickPickLabelActive : null]}>{value}</Text>
             </Pressable>
           ))}
         </View>
 
         <View style={styles.fieldGrid}>
-          <View style={styles.fieldCell}><TextField label={`Quantity (${quantityLabel})`} value={quantitySold} onChangeText={setQuantitySold} keyboardType="numeric" placeholder="1" dense /></View>
+          <View style={styles.fieldCell}><TextField label={`Quantity (${quantityLabel})`} value={quantitySold} onChangeText={setManualQuantity} keyboardType="numeric" placeholder="1" dense /></View>
           <View style={styles.fieldCell}><TextField label="Date" value={date} onChangeText={setDate} placeholder="YYYY-MM-DD" dense /></View>
         </View>
 
         {entryMode === 'saved' ? (
           <>
+            {savedPriceOptions.length ? (
+              <>
+                <Text style={styles.filterLabel}>Saved price options</Text>
+                <View style={styles.filterRow}>
+                  {savedPriceOptions.map((option) => (
+                    <Pressable
+                      key={`${option.label}-${option.quantity}-${option.totalPrice}`}
+                      style={[styles.filterChip, selectedPriceOptionLabel === option.label && !customPriceEnabled ? styles.filterChipActive : null]}
+                      onPress={() => selectPriceOption(option)}
+                    >
+                      <Text style={[styles.filterChipLabel, selectedPriceOptionLabel === option.label && !customPriceEnabled ? styles.filterChipLabelActive : null]}>{option.label}</Text>
+                    </Pressable>
+                  ))}
+                </View>
+                <Text style={styles.helpText}>Choosing one fills in the quantity and sale total for that price.</Text>
+              </>
+            ) : null}
             <Pressable style={styles.moreOptionsToggle} onPress={() => setCustomPriceEnabled((value) => !value)}>
               <Text style={styles.moreOptionsLabel}>{customPriceEnabled ? 'Use saved sell-unit price' : 'Edit sell-unit price only if needed'}</Text>
             </Pressable>
@@ -520,6 +571,7 @@ export default function AddSaleScreen() {
           <Text style={styles.saleMathText}>Type: {entryMode === 'saved' ? selectedProduct ? selectedProduct.productType === 'third-party' ? '3rd Party' : 'My Product' : '—' : manualProductType === 'third-party' ? '3rd Party' : 'My Product'}</Text>
           <Text style={styles.saleMathText}>Category: {entryMode === 'saved' ? selectedProduct?.category ?? '—' : manualCategory.trim() || '—'}</Text>
           <Text style={styles.saleMathText}>Selling as: {entryMode === 'saved' ? selectedProduct ? getProductSellUnitDescription(selectedProduct) : '—' : 'each'}</Text>
+          {entryMode === 'saved' && selectedPriceOption ? <Text style={styles.saleMathText}>Price option: {selectedPriceOption.label}</Text> : null}
           {entryMode === 'saved' ? (
             selectedProduct?.productType === 'third-party'
               ? <>
@@ -539,6 +591,7 @@ export default function AddSaleScreen() {
             </>
           )}
           <Text style={styles.saleMathText}>Unit price: {formatWithUnit(effectiveSellingPrice, '$', 2)}</Text>
+          {entryMode === 'saved' && selectedPriceOption ? <Text style={styles.saleMathText}>Option total: {formatWithUnit(selectedPriceOption.totalPrice, '$', 2)}</Text> : null}
           <Text style={styles.saleMathStrong}>Sale total: {formatWithUnit(totalSale, '$', 2)}</Text>
           {entryMode === 'saved' ? (
             selectedProduct?.productType === 'third-party'

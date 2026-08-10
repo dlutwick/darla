@@ -1,9 +1,19 @@
 {
   "extends": "expo/tsconfig.base",
   "compilerOptions": {
-    "strict": true
+    "strict": true,
+    "skipLibCheck": true
   },
+  "include": [
+    "App.tsx",
+    "index.ts",
+    "app/**/*.ts",
+    "app/**/*.tsx",
+    "supabase/src/**/*.ts",
+    "supabase/src/**/*.tsx"
+  ],
   "exclude": [
+    "audits",
     "dist",
     "node_modules"
   ]
