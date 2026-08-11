@@ -749,6 +749,15 @@ const MASTER_IMPORT_PRODUCT_CORRECTION_FIELDS: Array<keyof ProductRecord> = [
   'packSize',
 ];
 
+function shouldKeepSuggestedPackagingField(product: ProductRecord, field: keyof ProductRecord) {
+  if (field !== 'sellUnitType' && field !== 'customUnitName' && field !== 'packSize') {
+    return false;
+  }
+
+  const suggested = getSuggestedSellUnitSetup(product.businessType, product.category || product.name);
+  return suggested.sellUnitType !== 'each';
+}
+
 function migrateMasterImportProductCorrections(state: BusinessAppState) {
   const canonicalProductsById = new Map(MASTER_IMPORT_STATE.products.map((product) => [
     product.productId,
@@ -764,6 +773,10 @@ function migrateMasterImportProductCorrections(state: BusinessAppState) {
 
     const next: ProductRecord = { ...product };
     for (const field of MASTER_IMPORT_PRODUCT_CORRECTION_FIELDS) {
+      if (shouldKeepSuggestedPackagingField(next, field)) {
+        continue;
+      }
+
       const currentValue = field === 'priceOptions' ? JSON.stringify(next[field] ?? null) : next[field];
       const canonicalValue = field === 'priceOptions' ? JSON.stringify(canonical[field] ?? null) : canonical[field];
       if (currentValue !== canonicalValue) {
@@ -1076,9 +1089,8 @@ async function saveBusinessState(state: BusinessAppState) {
 }
 
 export function subscribeBusinessState(listener: () => void) {
-  storeListeners.add(listener);
-
   if (typeof window === 'undefined' || typeof window.addEventListener !== 'function') {
+    storeListeners.add(listener);
     return () => {
       storeListeners.delete(listener);
     };
@@ -1088,7 +1100,6 @@ export function subscribeBusinessState(listener: () => void) {
   window.addEventListener(STORE_UPDATED_EVENT, handle as EventListener);
 
   return () => {
-    storeListeners.delete(listener);
     window.removeEventListener(STORE_UPDATED_EVENT, handle as EventListener);
   };
 }

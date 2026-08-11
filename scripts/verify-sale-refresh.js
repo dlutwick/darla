@@ -45,53 +45,67 @@ function createLocalStorage(seed = {}) {
     removeItem(key) {
       store.delete(key);
     },
+    clear() {
+      store.clear();
+    },
   };
 }
 
 async function main() {
   const storage = createLocalStorage();
+  const listeners = new Map();
+  let dispatchCount = 0;
   global.window = {
     localStorage: storage,
-    dispatchEvent: () => true,
-    addEventListener: () => {},
-    removeEventListener: () => {},
+    dispatchEvent: (event) => {
+      dispatchCount += 1;
+      for (const listener of listeners.get(event.type) ?? []) {
+        listener(event);
+      }
+      return true;
+    },
+    addEventListener: (type, listener) => {
+      listeners.set(type, [...(listeners.get(type) ?? []), listener]);
+    },
+    removeEventListener: (type, listener) => {
+      listeners.set(type, (listeners.get(type) ?? []).filter((item) => item !== listener));
+    },
   };
   global.CustomEvent = function CustomEvent(name) { this.type = name; };
 
   const { loadTs } = createLoader();
   const store = loadTs(path.join(root, 'supabase/src/features/business/store.ts'));
+  const masterImportState = loadTs(path.join(root, 'supabase/src/features/business/master-import-data.ts')).MASTER_IMPORT_STATE;
 
+  const legacySale = {
+    businessType: 'bakery',
+    businessLine: 'bakery',
+    productType: 'my-product',
+    productId: 'manual-old-row',
+    productName: 'Old Imported Sale',
+    itemName: 'Old Imported Sale',
+    quantitySold: 2,
+    quantity: 2,
+    sellingPrice: 5,
+    unitPrice: 5,
+    date: '2026-04-22',
+    totalSale: 10,
+    subtotal: 10,
+    category: 'Cookies',
+    costPerItem: 2,
+    estimatedProfit: 6,
+    profit: 6,
+    commissionPercent: 0,
+    commissionEarned: 0,
+    vendorShare: 0,
+    createdAt: '2026-04-22T17:00:00.000Z'
+  };
   const seedState = {
-    products: [],
+    ...masterImportState,
     sales: [
-      {
-        businessType: 'bakery',
-        businessLine: 'bakery',
-        productType: 'my-product',
-        productId: 'manual-old-row',
-        productName: 'Old Imported Sale',
-        itemName: 'Old Imported Sale',
-        quantitySold: 2,
-        quantity: 2,
-        sellingPrice: 5,
-        unitPrice: 5,
-        date: '2026-04-22',
-        totalSale: 10,
-        subtotal: 10,
-        category: 'Cookies',
-        costPerItem: 2,
-        estimatedProfit: 6,
-        profit: 6,
-        commissionPercent: 0,
-        commissionEarned: 0,
-        vendorShare: 0,
-        createdAt: '2026-04-22T17:00:00.000Z'
-      }
+      legacySale,
+      ...(masterImportState.sales ?? []),
     ],
-    expenses: [],
-    giveaways: [],
-    restocks: [],
-    orders: []
   };
 
   storage.setItem(store.BUSINESS_STORAGE_KEY, JSON.stringify(seedState));
@@ -112,12 +126,58 @@ async function main() {
     throw new Error('Expected saved sale to be found again after simulated refresh.');
   }
 
+  storage.clear();
+  dispatchCount = 0;
+  let subscriberCalls = 0;
+  const { loadTs: regressionLoadTs } = createLoader();
+  const regressionStore = regressionLoadTs(path.join(root, 'supabase/src/features/business/store.ts'));
+  const unsubscribe = regressionStore.subscribeBusinessState(() => {
+    subscriberCalls += 1;
+  });
+
+  await regressionStore.loadBusinessState();
+  dispatchCount = 0;
+  subscriberCalls = 0;
+  await regressionStore.loadBusinessState();
+  await regressionStore.loadBusinessState();
+  await regressionStore.loadBusinessState();
+
+  if (dispatchCount !== 0 || subscriberCalls !== 0) {
+    throw new Error(`Expected repeated loadBusinessState calls to stay quiet after migrations, got ${dispatchCount} dispatches and ${subscriberCalls} subscriber calls.`);
+  }
+
+  dispatchCount = 0;
+  subscriberCalls = 0;
+  await regressionStore.addProduct({
+    businessType: 'craft',
+    productType: 'my-product',
+    name: 'Subscription Regression Product',
+    category: 'Sewing',
+    cost: 1,
+    sellingPrice: 2,
+    vendorName: null,
+    commissionPercent: 0,
+    sellUnitType: 'each',
+    customUnitName: null,
+    packSize: 1,
+    startingInventory: 0,
+    reorderLevel: 0,
+    notes: 'Created by verifier in fake storage only',
+  });
+  unsubscribe();
+
+  if (dispatchCount !== 1 || subscriberCalls !== 1) {
+    throw new Error(`Expected one store update to call the subscriber once, got ${dispatchCount} dispatches and ${subscriberCalls} subscriber calls.`);
+  }
+
   console.log(JSON.stringify({
     ok: true,
     checks: {
       missingSaleIdsAreNormalized: true,
       normalizedSaleIdsArePersisted: true,
       savedSaleCanBeFoundAfterRefresh: true,
+      repeatedBusinessStateLoadsDoNotDispatchAfterMigration: true,
+      subscribersAreCalledOncePerBusinessStateUpdate: true,
     },
   }, null, 2));
 }
@@ -125,4 +185,6 @@ async function main() {
 main().catch((error) => {
   console.error(error);
   process.exit(1);
+}).then(() => {
+  process.exit(0);
 });
