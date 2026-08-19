@@ -38,8 +38,6 @@ export default function AddProductScreen() {
   const [sellUnitType, setSellUnitType] = useState<SellUnitType>(initialSuggestion.sellUnitType);
   const [customUnitName, setCustomUnitName] = useState('');
   const [packSize, setPackSize] = useState(initialSuggestion.packSize > 1 ? String(initialSuggestion.packSize) : '');
-  const [startingInventory, setStartingInventory] = useState('0');
-  const [reorderLevel, setReorderLevel] = useState('0');
   const [notes, setNotes] = useState('');
   const [saving, setSaving] = useState(false);
   const [recentProducts, setRecentProducts] = useState<Awaited<ReturnType<typeof listProducts>>>([]);
@@ -61,8 +59,8 @@ export default function AddProductScreen() {
     sellUnitType,
     customUnitName: customUnitName.trim() || null,
     packSize: resolvedPackSize,
-    startingInventory: Number.isFinite(Number(startingInventory)) ? Number(startingInventory) : 0,
-    reorderLevel: Number.isFinite(Number(reorderLevel)) ? Number(reorderLevel) : 0,
+    startingInventory: 0,
+    reorderLevel: 0,
     notes: notes.trim() || null,
     batchSize: null,
     batchCost: null,
@@ -119,8 +117,6 @@ export default function AddProductScreen() {
       setSellUnitType(existing.sellUnitType);
       setCustomUnitName(existing.customUnitName ?? '');
       setPackSize(existing.sellUnitType === 'pack' ? String(existing.packSize ?? 1) : '');
-      setStartingInventory(String(existing.startingInventory));
-      setReorderLevel(String(existing.reorderLevel));
       setNotes(existing.notes ?? '');
       setStatusMessage('Editing existing product. Saving will update it instead of creating a duplicate.');
     })();
@@ -147,6 +143,8 @@ export default function AddProductScreen() {
       if (productType === 'third-party' && !vendorName.trim()) throw new Error('Vendor name is required for a 3rd Party product.');
       if (sellUnitType === 'custom' && !customUnitName.trim()) throw new Error('Custom sell unit is required.');
       setSaving(true);
+      const preservedProduct = isEditing && editingProductId ? await getProductById(editingProductId) : null;
+      if (isEditing && !preservedProduct) throw new Error('Product not found.');
 
       const payload = {
         businessType,
@@ -160,8 +158,8 @@ export default function AddProductScreen() {
         sellUnitType,
         customUnitName: sellUnitType === 'custom' ? customUnitName : null,
         packSize: sellUnitType === 'pack' ? parsePositive(packSize || '1', 'Pack size') : 1,
-        startingInventory: parsePositive(startingInventory, 'Starting inventory', true),
-        reorderLevel: parsePositive(reorderLevel, 'Reorder level', true),
+        startingInventory: preservedProduct?.startingInventory ?? 0,
+        reorderLevel: preservedProduct?.reorderLevel ?? 0,
         notes,
       };
 
@@ -181,8 +179,6 @@ export default function AddProductScreen() {
       setSellUnitType(resetSuggestion.sellUnitType);
       setCustomUnitName('');
       setPackSize(resetSuggestion.packSize > 1 ? String(resetSuggestion.packSize) : '');
-      setStartingInventory('0');
-      setReorderLevel('0');
       setStatusMessage(isEditing ? 'Product updated. All dependent views now use the new setup.' : 'Product saved. You can enter another one or jump to Add Sale.');
       await refresh();
     } catch (error) {
@@ -203,8 +199,6 @@ export default function AddProductScreen() {
         `Sale price: ${formatWithUnit(item.sellingPrice, '$', 2)}`,
         item.productType === 'third-party' ? `Vendor: ${item.vendorName || '—'}` : `Cost per sell unit: ${formatWithUnit(item.cost, '$', 2)}`,
         item.productType === 'third-party' ? `Commission: ${formatNumber(item.commissionPercent, 0)}%` : `Profit per sell unit: ${formatWithUnit(getProfitPerSellUnit(item), '$', 2)}`,
-        `Starting inventory: ${formatNumber(item.startingInventory, 0)}`,
-        `Reorder level: ${formatNumber(item.reorderLevel, 0)}`,
         item.notes ? `Notes: ${item.notes}` : 'No notes saved.',
       ].join('\n')
     );
@@ -214,7 +208,7 @@ export default function AddProductScreen() {
     void (async () => {
       const hasHistory = await productHasSavedHistory(item.productId);
       if (item.status === 'archived') {
-        Alert.alert('Restore product?', `${item.name} will become active again and show up in new sale, giveaway, and restock selectors.`, [
+        Alert.alert('Restore product?', `${item.name} will become active again and show up in new sale and giveaway selectors.`, [
           { text: 'Cancel', style: 'cancel' },
           {
             text: 'Restore',
@@ -231,7 +225,7 @@ export default function AddProductScreen() {
       }
 
       if (hasHistory) {
-        Alert.alert('Archive product?', `${item.name} has saved history, so it will be archived instead of deleted. Historical rows stay linked, but the product will be hidden from new sale, giveaway, and restock selectors until restored.`, [
+        Alert.alert('Archive product?', `${item.name} has saved history, so it will be archived instead of deleted. Historical rows stay linked, but the product will be hidden from new sale and giveaway selectors until restored.`, [
           { text: 'Cancel', style: 'cancel' },
           {
             text: 'Archive',
@@ -248,7 +242,7 @@ export default function AddProductScreen() {
         return;
       }
 
-      Alert.alert('Delete product?', `${item.name} has no saved sales, giveaways, or restocks, so it can be deleted safely.`, [
+      Alert.alert('Delete product?', `${item.name} has no saved sales or giveaways, so it can be deleted safely.`, [
         { text: 'Cancel', style: 'cancel' },
         {
           text: 'Delete',
@@ -326,11 +320,6 @@ export default function AddProductScreen() {
           <View style={styles.fieldCell}><TextField label="Sale price per sell unit" value={sellingPrice} onChangeText={setSellingPrice} keyboardType="numeric" placeholder="0" dense /></View>
         </View>
         <Text style={styles.helpText}>{productType === 'third-party' ? 'For 3rd-party products, sale price drives commission math. Cost is not used for earnings.' : 'Enter the cost and sale price for one sell unit here. For packs, that means one full pack.'}</Text>
-        <View style={styles.fieldGrid}>
-          <View style={styles.fieldCell}><TextField label="Starting inventory" value={startingInventory} onChangeText={setStartingInventory} keyboardType="numeric" placeholder="0" dense /></View>
-          <View style={styles.fieldCell}><TextField label="Reorder level" value={reorderLevel} onChangeText={setReorderLevel} keyboardType="numeric" placeholder="0" dense /></View>
-        </View>
-        <Text style={styles.helpText}>Right now inventory is counted in sell units. That means packs count as packs, loaves count as loaves, and single items count as items.</Text>
         <View style={styles.rowCard}>
           <Text style={styles.rowTitle}>Pricing preview</Text>
           <Text style={styles.rowMeta}>Type: {productType === 'third-party' ? '3rd Party' : 'My Product'}</Text>
@@ -358,10 +347,9 @@ export default function AddProductScreen() {
             <Text style={styles.rowMeta}>{lastSavedProduct.businessType === 'bakery' ? 'Bakery' : 'Craft'} · {lastSavedProduct.productType === 'third-party' ? '3rd Party' : 'My Product'} · {lastSavedProduct.category} · {lastSavedProduct.status === 'archived' ? 'Archived' : 'Active'}{lastSavedProduct.productType === 'third-party' ? ` · ${lastSavedProduct.vendorName || 'Vendor'} · ${formatNumber(lastSavedProduct.commissionPercent, 0)}% commission` : ` · ${getProductCostStatusLabel(lastSavedProduct)}`}</Text>
             <Text style={styles.rowMeta}>{formatWithUnit(lastSavedProduct.sellingPrice, '$', 2)} sale price per {lastSavedProduct.sellUnitType === 'pack' ? 'pack' : 'sell unit'}</Text>
             {lastSavedProduct.productType === 'third-party'
-              ? <Text style={styles.rowMeta}>Commission earned {formatWithUnit(getProfitPerSellUnit(lastSavedProduct), '$', 2)} per sell unit · vendor share {formatWithUnit(Number((lastSavedProduct.sellingPrice - getProfitPerSellUnit(lastSavedProduct)).toFixed(2)), '$', 2)} · start {formatNumber(lastSavedProduct.startingInventory, 0)} · reorder {formatNumber(lastSavedProduct.reorderLevel, 0)}</Text>
-              : <Text style={styles.rowMeta}>{formatWithUnit(getPackageCost(lastSavedProduct), '$', 2)} cost per sell unit · start {formatNumber(lastSavedProduct.startingInventory, 0)} · reorder {formatNumber(lastSavedProduct.reorderLevel, 0)}</Text>}
+              ? <Text style={styles.rowMeta}>Commission earned {formatWithUnit(getProfitPerSellUnit(lastSavedProduct), '$', 2)} per sell unit · vendor share {formatWithUnit(Number((lastSavedProduct.sellingPrice - getProfitPerSellUnit(lastSavedProduct)).toFixed(2)), '$', 2)}</Text>
+              : <Text style={styles.rowMeta}>{formatWithUnit(getPackageCost(lastSavedProduct), '$', 2)} cost per sell unit</Text>}
             {lastSavedProduct.productType === 'third-party' ? <Text style={styles.goodText}>Trusted commission {formatWithUnit(getProfitPerSellUnit(lastSavedProduct), '$', 2)} per sell unit</Text> : lastSavedProduct.cost <= 0 ? <Text style={styles.warningText}>Cost Pending. Profit not trusted yet.</Text> : <Text style={styles.goodText}>Trusted profit {formatWithUnit(getProfitPerSellUnit(lastSavedProduct), '$', 2)} per sell unit</Text>}
-            {lastSavedProduct.status !== 'archived' ? <Pressable style={styles.inlineLink} onPress={() => router.push({ pathname: '/restock', params: { productId: lastSavedProduct.productId } })}><Text style={styles.inlineLinkLabel}>Restock this product</Text></Pressable> : null}
             <RecordActionRow onView={() => handleViewProduct(lastSavedProduct)} onEdit={() => router.push({ pathname: '/product', params: { productId: lastSavedProduct.productId } })} onDelete={() => handleDeleteProduct(lastSavedProduct)} deleteLabel={lastSavedProduct.status === 'archived' ? 'Restore' : 'Archive'} />
           </View>
         ) : <Text style={styles.emptyText}>Save a product and it will appear here.</Text>}
@@ -375,10 +363,9 @@ export default function AddProductScreen() {
             <Text style={styles.rowMeta}>{item.businessType === 'bakery' ? 'Bakery' : 'Craft'} · {item.productType === 'third-party' ? '3rd Party' : 'My Product'} · {item.category} · {item.status === 'archived' ? 'Archived' : 'Active'}{item.productType === 'third-party' ? ` · ${item.vendorName || 'Vendor'} · ${formatNumber(item.commissionPercent, 0)}% commission` : ` · ${getProductCostStatusLabel(item)}`}</Text>
             <Text style={styles.rowMeta}>{formatWithUnit(item.sellingPrice, '$', 2)} sale price per {item.sellUnitType === 'pack' ? 'pack' : 'sell unit'}</Text>
             {item.productType === 'third-party'
-              ? <Text style={styles.rowMeta}>Commission earned {formatWithUnit(getProfitPerSellUnit(item), '$', 2)} per sell unit · vendor share {formatWithUnit(Number((item.sellingPrice - getProfitPerSellUnit(item)).toFixed(2)), '$', 2)} · start {formatNumber(item.startingInventory, 0)} · reorder {formatNumber(item.reorderLevel, 0)}</Text>
-              : <Text style={styles.rowMeta}>{formatWithUnit(getPackageCost(item), '$', 2)} cost per sell unit · start {formatNumber(item.startingInventory, 0)} · reorder {formatNumber(item.reorderLevel, 0)}</Text>}
+              ? <Text style={styles.rowMeta}>Commission earned {formatWithUnit(getProfitPerSellUnit(item), '$', 2)} per sell unit · vendor share {formatWithUnit(Number((item.sellingPrice - getProfitPerSellUnit(item)).toFixed(2)), '$', 2)}</Text>
+              : <Text style={styles.rowMeta}>{formatWithUnit(getPackageCost(item), '$', 2)} cost per sell unit</Text>}
             {item.productType === 'third-party' ? <Text style={styles.goodText}>Trusted commission {formatWithUnit(getProfitPerSellUnit(item), '$', 2)} per sell unit</Text> : item.cost <= 0 ? <Text style={styles.warningText}>Cost Pending. Profit not trusted yet.</Text> : <Text style={styles.goodText}>Trusted profit {formatWithUnit(getProfitPerSellUnit(item), '$', 2)} per sell unit</Text>}
-            {item.status !== 'archived' ? <Pressable style={styles.inlineLink} onPress={() => router.push({ pathname: '/restock', params: { productId: item.productId } })}><Text style={styles.inlineLinkLabel}>Restock this product</Text></Pressable> : null}
             <RecordActionRow onView={() => handleViewProduct(item)} onEdit={() => router.push({ pathname: '/product', params: { productId: item.productId } })} onDelete={() => handleDeleteProduct(item)} deleteLabel={item.status === 'archived' ? 'Restore' : 'Archive'} />
           </View>
         )) : <Text style={styles.emptyText}>No products yet.</Text>}

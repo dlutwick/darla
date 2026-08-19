@@ -65,17 +65,10 @@ async function main() {
     await expectText(page, 'Expenses');
     await expectText(page, 'Net');
 
-    await page.goto(`${baseUrl}/inventory`, { waitUntil: 'networkidle', timeout: 120000 });
-    await expectText(page, 'Butter Tarts');
-    await expectText(page, 'pack of 6');
-    await expectText(page, 'Sale price $10.00');
-    await expectText(page, 'Wrist Key fob');
-    await expectText(page, 'Sale price $12.00');
-
     await verifyExpenseUiAndDeletion(page);
     await verifyCsvExports(page);
 
-    console.log('Final UI validation passed: pricing displays as $12.00/$10.00, requested sales total correctly in UI receipts/dashboard/summary/inventory/CSV, recurring expenses auto-post, Hartland Saturday deletion is isolated, and exports include the updated data.');
+    console.log('Final UI validation passed: pricing displays as $12.00/$10.00, requested sales total correctly in UI receipts/dashboard/summary/CSV, recurring expenses auto-post, Hartland Saturday deletion is isolated, and exports include the updated data.');
   } finally {
     await browser.close();
   }
@@ -111,11 +104,6 @@ async function verifyPriceScreens(page) {
   await expectText(page, 'Wrist Key fob');
   await expectText(page, 'Price $12.00');
 
-  await page.goto(`${baseUrl}/inventory`, { waitUntil: 'networkidle', timeout: 120000 });
-  await expectText(page, 'Butter Tarts');
-  await expectText(page, 'Sale price $10.00');
-  await expectText(page, 'Wrist Key fob');
-  await expectText(page, 'Sale price $12.00');
 }
 
 async function verifyExpenseUiAndDeletion(page) {

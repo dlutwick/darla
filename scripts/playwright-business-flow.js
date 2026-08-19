@@ -13,12 +13,12 @@ async function main() {
   await page.reload();
   await page.waitForLoadState('networkidle');
 
-  await addProduct(page, { business: 'Bakery', name: 'Butter Tarts Test', cost: '1.25', price: '3.5', stock: '4', reorder: '3' });
-  await addProduct(page, { business: 'Bakery', name: 'Bread Loaf Test', cost: '2.1', price: '6', stock: '4', reorder: '3' });
-  await addProduct(page, { business: 'Bakery', name: 'Cookie Pack Test', cost: '2.5', price: '7.5', stock: '18', reorder: '4' });
-  await addProduct(page, { business: 'Craft', name: 'Spring Tumbler Test', cost: '6', price: '18', stock: '3', reorder: '2' });
-  await addProduct(page, { business: 'Craft', name: 'Laser Sign Test', cost: '8', price: '24', stock: '4', reorder: '2' });
-  await addProduct(page, { business: 'Craft', name: 'Towel Test', cost: '4', price: '12', stock: '15', reorder: '3' });
+  await addProduct(page, { business: 'Bakery', name: 'Butter Tarts Test', cost: '1.25', price: '3.5' });
+  await addProduct(page, { business: 'Bakery', name: 'Bread Loaf Test', cost: '2.1', price: '6' });
+  await addProduct(page, { business: 'Bakery', name: 'Cookie Pack Test', cost: '2.5', price: '7.5' });
+  await addProduct(page, { business: 'Craft', name: 'Spring Tumbler Test', cost: '6', price: '18' });
+  await addProduct(page, { business: 'Craft', name: 'Laser Sign Test', cost: '8', price: '24' });
+  await addProduct(page, { business: 'Craft', name: 'Towel Test', cost: '4', price: '12' });
 
   await page.goto(`${baseUrl}/sale`);
   await page.waitForLoadState('networkidle');
@@ -37,21 +37,6 @@ async function main() {
 
   await addOrder(page);
 
-  await page.goto(`${baseUrl}/inventory`);
-  await page.waitForLoadState('networkidle');
-  await expectText(page, 'Butter Tarts Test');
-  await expectText(page, 'On hand 3 · Sold 1 · Reorder 3');
-  await expectText(page, 'Bread Loaf Test');
-  await expectText(page, 'On hand 2 · Sold 2 · Reorder 3');
-  await expectText(page, 'Cookie Pack Test');
-  await expectText(page, 'On hand 15 · Sold 3 · Reorder 4');
-  await expectText(page, 'Spring Tumbler Test');
-  await expectText(page, 'On hand 2 · Sold 1 · Reorder 2');
-  await expectText(page, 'Laser Sign Test');
-  await expectText(page, 'On hand 2 · Sold 2 · Reorder 2');
-  await expectText(page, 'Towel Test');
-  await expectText(page, 'On hand 12 · Sold 3 · Reorder 3');
-
   await page.goto(`${baseUrl}/summary`);
   await page.waitForLoadState('networkidle');
   await expectText(page, 'Bakery and Craft comparison');
@@ -61,7 +46,6 @@ async function main() {
   await expectText(page, '105 $');
   await expectText(page, 'Cookie Pack Test');
   await expectText(page, 'Towel Test');
-  await expectText(page, 'Low stock');
   await expectText(page, 'Bakery');
   await expectText(page, 'Crafts');
   await expectText(page, 'Butter Tarts Test');
@@ -76,11 +60,11 @@ async function main() {
   assert.equal(persisted.sales.length, 6, 'six sales entries should be saved in the browser flow');
   assert.equal(persisted.orders.length, 1, 'one order should be saved for summary verification');
 
-  console.log('Playwright summary flow passed: bakery and craft totals, best sellers, low stock, and open orders were all meaningful at a glance.');
+  console.log('Playwright summary flow passed: bakery and craft totals, best sellers, and open orders were all meaningful at a glance.');
   await browser.close();
 }
 
-async function addProduct(page, { business, name, cost, price, stock, reorder }) {
+async function addProduct(page, { business, name, cost, price }) {
   await page.goto(`${baseUrl}/product`);
   await page.waitForLoadState('networkidle');
   await page.getByText(business, { exact: true }).first().click();
@@ -88,8 +72,6 @@ async function addProduct(page, { business, name, cost, price, stock, reorder })
   await inputs.nth(0).fill(name);
   await inputs.nth(1).fill(cost);
   await inputs.nth(2).fill(price);
-  await inputs.nth(3).fill(stock);
-  await inputs.nth(4).fill(reorder);
   await page.getByRole('button', { name: 'Save Product' }).click();
   await page.waitForLoadState('networkidle');
   await expectText(page, 'Product saved.');

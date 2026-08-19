@@ -13,7 +13,7 @@ import { getDashboardSnapshot, getProductSellUnitDescription, getProductSellUnit
 import { formatNumber, formatWithUnit } from '../supabase/src/lib/format';
 
 export default function SummaryScreen() {
-  const [statusMessage, setStatusMessage] = useState('Monthly summary updates from saved sales, profit, expenses, giveaways, and stock.');
+  const [statusMessage, setStatusMessage] = useState('Monthly summary updates from saved sales, profit, expenses, and giveaways.');
   const [snapshot, setSnapshot] = useState<Awaited<ReturnType<typeof getDashboardSnapshot>> | null>(null);
   const [selectedMonth, setSelectedMonth] = useState(ALL_MONTHS_KEY);
 
@@ -48,14 +48,12 @@ export default function SummaryScreen() {
   const filteredCraftSales = useMemo(() => filteredSales.filter((item) => item.businessType === 'craft'), [filteredSales]);
   const filteredBakeryExpenses = useMemo(() => filteredExpenses.filter((item) => item.businessType === 'bakery'), [filteredExpenses]);
   const filteredCraftExpenses = useMemo(() => filteredExpenses.filter((item) => item.businessType === 'craft'), [filteredExpenses]);
-  const filteredBakeryLowStock = useMemo(() => (snapshot?.bakeryProductSnapshots ?? []).filter((item) => item.lowStock), [snapshot?.bakeryProductSnapshots]);
-  const filteredCraftLowStock = useMemo(() => (snapshot?.craftProductSnapshots ?? []).filter((item) => item.lowStock), [snapshot?.craftProductSnapshots]);
   const reconciliationRows = useMemo(() => buildReconciliationRows(snapshot, selectedMonth), [snapshot, selectedMonth]);
   const topItems = useMemo(() => buildSummaryTopItems(filteredSales), [filteredSales]);
 
   return (
     <AppScreen>
-      <ScreenIntro eyebrow="Monthly Summary" title="Monthly summary" subtitle="Sales, earned commission, vendor balances, expenses, giveaways, net, top items, and low stock across Bakery and Crafts." />
+      <ScreenIntro eyebrow="Monthly Summary" title="Monthly summary" subtitle="Sales, earned commission, vendor balances, expenses, giveaways, net, and top items across Bakery and Crafts." />
 
       <View style={styles.statusRow}>
         <Text style={styles.statusLabel}>Overview</Text>
@@ -160,7 +158,6 @@ export default function SummaryScreen() {
             <StatRow label="3rd Party Commission" value={formatWithUnit(sumThirdPartyCommission(filteredBakerySales), '$', 2)} />
             <StatRow label="Vendor Outstanding" value={formatWithUnit(Number((sumVendorOwed(filteredBakerySales) - sumVendorPayments(filteredBakeryExpenses)).toFixed(2)), '$', 2)} />
             <StatRow label="Sell units sold" value={formatNumber(sumQuantity(filteredBakerySales), 0)} />
-            <StatRow label="Low stock" value={formatNumber(filteredBakeryLowStock.length, 0)} />
           </View>
           <View style={styles.businessCard}>
             <Text style={styles.businessTitle}>Crafts</Text>
@@ -171,7 +168,6 @@ export default function SummaryScreen() {
             <StatRow label="3rd Party Commission" value={formatWithUnit(sumThirdPartyCommission(filteredCraftSales), '$', 2)} />
             <StatRow label="Vendor Outstanding" value={formatWithUnit(Number((sumVendorOwed(filteredCraftSales) - sumVendorPayments(filteredCraftExpenses)).toFixed(2)), '$', 2)} />
             <StatRow label="Sell units sold" value={formatNumber(sumQuantity(filteredCraftSales), 0)} />
-            <StatRow label="Low stock" value={formatNumber(filteredCraftLowStock.length, 0)} />
           </View>
         </View>
       </Card>
@@ -190,17 +186,6 @@ export default function SummaryScreen() {
         )) : <Text style={styles.emptyText}>No sales yet.</Text>}
       </Card>
 
-      <Card>
-        <SectionHeader title="Low stock" subtitle="What needs to be baked, made, or restocked next." />
-        <Text style={styles.groupTitle}>Bakery</Text>
-        {filteredBakeryLowStock.length ? filteredBakeryLowStock.map((item) => (
-          <StatRow key={item.productId} label={`${item.name} · ${getProductSellUnitDescription(item)}`} value={`${formatNumber(item.quantityOnHand, 0)} ${getProductSellUnitLabel(item, item.quantityOnHand)} left · reorder ${formatNumber(item.reorderLevel, 0)}`} />
-        )) : <Text style={styles.emptyText}>No bakery low stock right now.</Text>}
-        <Text style={styles.groupTitle}>Crafts</Text>
-        {filteredCraftLowStock.length ? filteredCraftLowStock.map((item) => (
-          <StatRow key={item.productId} label={`${item.name} · ${getProductSellUnitDescription(item)}`} value={`${formatNumber(item.quantityOnHand, 0)} ${getProductSellUnitLabel(item, item.quantityOnHand)} left · reorder ${formatNumber(item.reorderLevel, 0)}`} />
-        )) : <Text style={styles.emptyText}>No craft low stock right now.</Text>}
-      </Card>
     </AppScreen>
   );
 }

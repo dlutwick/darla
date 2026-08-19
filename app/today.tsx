@@ -18,7 +18,6 @@ const PRIMARY_ACTIONS = [
 const QUICK_LINKS = [
   { label: 'Expenses', route: '/expenses' },
   { label: 'Giveaways', route: '/giveaways' },
-  { label: 'Inventory', route: '/inventory' },
   { label: 'Summary', route: '/summary' },
   { label: 'History & CSV', route: '/history' },
 ];
@@ -67,13 +66,10 @@ export default function HomeScreen() {
 
   const bakeryProducts = useMemo(() => snapshot?.productSnapshots.filter((item) => item.businessType === 'bakery') ?? [], [snapshot?.productSnapshots]);
   const craftProducts = useMemo(() => snapshot?.productSnapshots.filter((item) => item.businessType === 'craft') ?? [], [snapshot?.productSnapshots]);
-  const bakeryLowStock = bakeryProducts.filter((item) => item.lowStock);
-  const craftLowStock = craftProducts.filter((item) => item.lowStock);
   const filteredSales = useMemo(() => filterRowsByMonth(snapshot?.sales ?? [], selectedMonth), [snapshot?.sales, selectedMonth]);
   const filteredExpenses = useMemo(() => filterRowsByMonth(snapshot?.expenses ?? [], selectedMonth), [snapshot?.expenses, selectedMonth]);
   const filteredGiveaways = useMemo(() => filterRowsByMonth(snapshot?.giveaways ?? [], selectedMonth), [snapshot?.giveaways, selectedMonth]);
   const recentSales = filteredSales.slice(0, 5);
-  const urgentAction = bakeryLowStock.length + craftLowStock.length;
   const filteredBakerySales = useMemo(() => filteredSales.filter((item) => item.businessType === 'bakery'), [filteredSales]);
   const filteredCraftSales = useMemo(() => filteredSales.filter((item) => item.businessType === 'craft'), [filteredSales]);
   const thirdPartySales = useMemo(() => sumThirdPartySales(filteredSales), [filteredSales]);
@@ -85,9 +81,6 @@ export default function HomeScreen() {
   const nextStep = useMemo(() => {
     if (!snapshot?.productSnapshots.length) {
       return 'Tap Add product first';
-    }
-    if (snapshot.lowStockItems.length) {
-      return 'Restock low items';
     }
     return 'Record a sale';
   }, [snapshot]);
@@ -135,7 +128,7 @@ export default function HomeScreen() {
         <Pressable style={styles.exportCallout} onPress={() => router.push('/history')}>
           <View>
             <Text style={styles.exportCalloutTitle}>Open History for CSV exports</Text>
-            <Text style={styles.exportCalloutMeta}>Export Sales, Expenses, Products, Inventory, and Summary files from one screen.</Text>
+            <Text style={styles.exportCalloutMeta}>Export Sales, Expenses, Products, and Summary files from one screen.</Text>
           </View>
           <Text style={styles.exportCalloutArrow}>Open</Text>
         </Pressable>
@@ -165,7 +158,6 @@ export default function HomeScreen() {
         <CompactStat label="Sales" value={formatWithUnit(sumSales(filteredSales), '$', 2)} />
         <CompactStat label="Expenses" value={formatWithUnit(sumExpenses(filteredExpenses), '$', 2)} />
         <CompactStat label="Giveaway cost" value={formatWithUnit(sumGiveawayCost(filteredGiveaways), '$', 2)} />
-        <CompactStat label="Low stock" value={formatNumber(snapshot?.lowStockItems.length, 0)} />
         <CompactStat label="Sales rows" value={formatNumber(filteredSales.length, 0)} />
       </View>
 
@@ -175,7 +167,6 @@ export default function HomeScreen() {
           subtitle="Sweet Tarts"
           productCount={bakeryProducts.length}
           sellUnitsSold={filteredBakerySales.reduce((sum, sale) => sum + Number(sale.quantitySold || 0), 0)}
-          lowStockCount={bakeryLowStock.length}
           sales={sumSales(filteredBakerySales)}
           route="/bakery"
         />
@@ -184,43 +175,9 @@ export default function HomeScreen() {
           subtitle="Crafting Nana"
           productCount={craftProducts.length}
           sellUnitsSold={filteredCraftSales.reduce((sum, sale) => sum + Number(sale.quantitySold || 0), 0)}
-          lowStockCount={craftLowStock.length}
           sales={sumSales(filteredCraftSales)}
           route="/crafts"
         />
-      </View>
-
-      <View style={styles.attentionCard}>
-        <View style={styles.attentionHeader}>
-          <Text style={styles.sectionTitle}>What needs attention</Text>
-          <View style={styles.attentionBadge}>
-            <Text style={styles.attentionBadgeText}>{formatNumber(urgentAction, 0)} items</Text>
-          </View>
-        </View>
-
-        <View style={styles.attentionGrid}>
-          <View style={styles.attentionPanel}>
-            <View style={styles.panelHeaderRow}>
-              <Text style={styles.panelTitle}>Low stock</Text>
-              <Pressable onPress={() => router.push('/inventory')}>
-                <Text style={styles.panelLink}>Inventory</Text>
-              </Pressable>
-            </View>
-            {snapshot?.lowStockItems.length ? (
-              snapshot.lowStockItems.slice(0, 4).map((item) => (
-                <View key={item.productId} style={styles.attentionActionCard}>
-                  <AttentionRow label={item.name} value={`${formatNumber(item.quantityOnHand, 0)} ${getProductSellUnitLabel(item, item.quantityOnHand)} left`} />
-                  <Text style={styles.attentionSubtext}>Reorder {formatNumber(item.reorderLevel, 0)} · {item.inventoryStatusLabel}</Text>
-                  <Pressable style={styles.inlineAction} onPress={() => router.push({ pathname: '/restock', params: { productId: item.productId } })}>
-                    <Text style={styles.inlineActionLabel}>Restock</Text>
-                  </Pressable>
-                </View>
-              ))
-            ) : (
-              <Text style={styles.emptyText}>Nothing low right now.</Text>
-            )}
-          </View>
-        </View>
       </View>
 
       <View style={styles.recentSalesCard}>
@@ -289,12 +246,11 @@ type BusinessCardProps = {
   subtitle: string;
   productCount: number;
   sellUnitsSold: number;
-  lowStockCount: number;
   sales: number;
   route: '/bakery' | '/crafts';
 };
 
-function BusinessCard({ title, subtitle, productCount, sellUnitsSold, lowStockCount, sales, route }: BusinessCardProps) {
+function BusinessCard({ title, subtitle, productCount, sellUnitsSold, sales, route }: BusinessCardProps) {
   return (
     <Pressable style={styles.businessCard} onPress={() => router.push(route)}>
       <View style={styles.businessTopRow}>
@@ -313,30 +269,12 @@ function BusinessCard({ title, subtitle, productCount, sellUnitsSold, lowStockCo
           <Text style={styles.businessMetricValue}>{formatNumber(sellUnitsSold, 0)}</Text>
           <Text style={styles.businessMetricLabel}>Sell units sold</Text>
         </View>
-        <View style={styles.businessMetricTile}>
-          <Text style={styles.businessMetricValue}>{formatNumber(lowStockCount, 0)}</Text>
-          <Text style={styles.businessMetricLabel}>Low stock</Text>
-        </View>
         <View style={styles.businessMetricTileWide}>
           <Text style={styles.businessMetricValue}>{formatWithUnit(sales, '$', 2)}</Text>
           <Text style={styles.businessMetricLabel}>Sales</Text>
         </View>
       </View>
     </Pressable>
-  );
-}
-
-type AttentionRowProps = {
-  label: string;
-  value: string;
-};
-
-function AttentionRow({ label, value }: AttentionRowProps) {
-  return (
-    <View style={styles.attentionRow}>
-      <Text style={styles.attentionLabel}>{label}</Text>
-      <Text style={styles.attentionValue}>{value}</Text>
-    </View>
   );
 }
 

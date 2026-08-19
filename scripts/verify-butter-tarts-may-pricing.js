@@ -266,7 +266,7 @@ async function main() {
   assert.equal(dashboardFobSale.totalSale, 12);
 
   const fobSnapshot = dashboard.productSnapshots.find((product) => product.productId === wristKeyFob.productId);
-  assert(fobSnapshot, 'Inventory snapshot should include Wrist Key fob');
+  assert(fobSnapshot, 'Product snapshot should include Wrist Key fob');
   assert.equal(fobSnapshot.sellingPrice, 12);
   assert.equal(fobSnapshot.quantitySold, 1);
   assert.equal(fobSnapshot.quantityGivenAway, 1);
@@ -287,10 +287,6 @@ async function main() {
   const productsCsv = await exporter.buildProductsCsv();
   assert(productsCsv.content.includes('Butter Tarts,bakery,my-product,,0,Butter Tarts,pack of 6,6,0.57,10'), 'Products CSV should export Butter Tarts package of 6 at $10');
   assert(productsCsv.content.includes('Wrist Key fob,craft,my-product,,0,Gifts,item,,1.1,12'), 'Products CSV should export Wrist Key fob at $12');
-
-  const inventoryCsv = await exporter.buildInventoryCsv();
-  assert(inventoryCsv.content.includes('Butter Tarts,bakery,Butter Tarts,pack of 6,6'), 'Inventory CSV should show Butter Tarts package of 6');
-  assert(inventoryCsv.content.includes('Wrist Key fob,craft,Gifts,item,,4,1,2,1,no'), 'Inventory CSV should track Wrist Key fob quantity after the sample sale and giveaway');
 
   const giveawaysCsv = await exporter.buildGiveawaysCsv();
   assert(giveawaysCsv.content.includes('2026-06-01,2026-06,Wrist Key fob,craft,Gifts,item,1,12,1.1'), 'Giveaways CSV should export Wrist Key fob value at $12');

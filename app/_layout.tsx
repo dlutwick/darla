@@ -87,7 +87,6 @@ export default function RootLayout() {
       />
       <Tabs.Screen name="orders" options={{ href: null }} />
       <Tabs.Screen name="helper-commission" options={{ href: null }} />
-      <Tabs.Screen name="inventory" options={{ href: null }} />
       <Tabs.Screen name="product-audit" options={{ href: null }} />
       <Tabs.Screen name="bakery" options={{ href: null }} />
       <Tabs.Screen name="crafts" options={{ href: null }} />

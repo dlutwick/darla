@@ -502,7 +502,7 @@ export default function AddSaleScreen() {
               <Text style={[styles.filterChipLabel, saveManualAsProduct ? styles.filterChipLabelActive : null]}>Save as new product too</Text>
             </Pressable>
           </View>
-          <Text style={styles.helpText}>{saveManualAsProduct ? `This will save the sale and create a reusable product with ${manualProductType === 'my-product' ? 'your cost and ' : ''}zero starting inventory and zero reorder level.` : 'This saves only the sale row. It does not create a permanent product.'}</Text>
+          <Text style={styles.helpText}>{saveManualAsProduct ? `This will save the sale and create a reusable product with ${manualProductType === 'my-product' ? 'your cost and ' : ''}the sale price you enter.` : 'This saves only the sale row. It does not create a permanent product.'}</Text>
         </Card>
       )}
 

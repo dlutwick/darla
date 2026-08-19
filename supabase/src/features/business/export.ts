@@ -117,39 +117,12 @@ export async function buildProductsCsv(): Promise<CsvResult> {
     product.sellUnitType === 'pack' ? getProductPackSize(product) : '',
     product.cost,
     product.sellingPrice,
-    product.startingInventory,
-    product.reorderLevel,
-    product.quantityOnHand,
   ]);
 
   return {
     filename: 'products.csv',
     content: buildCsv(
-      ['product_name', 'business_line', 'product_type', 'vendor_name', 'commission_percent', 'category', 'sell_unit', 'pack_size', 'cost_per_item', 'sale_price_per_sell_unit', 'starting_inventory', 'reorder_level', 'current_inventory'],
-      rows,
-    ),
-  };
-}
-
-export async function buildInventoryCsv(): Promise<CsvResult> {
-  const snapshot = await getDashboardSnapshot();
-  const rows = snapshot.productSnapshots.map((product) => [
-    product.name,
-    product.businessLine ?? product.businessType,
-    product.category,
-    getProductSellUnitDescription(product),
-    product.sellUnitType === 'pack' ? getProductPackSize(product) : '',
-    product.startingInventory,
-    product.quantitySold,
-    product.quantityOnHand,
-    product.reorderLevel,
-    product.lowStock ? 'yes' : 'no',
-  ]);
-
-  return {
-    filename: 'inventory.csv',
-    content: buildCsv(
-      ['product_name', 'business_line', 'category', 'sell_unit', 'pack_size', 'starting_inventory', 'quantity_sold', 'current_inventory', 'reorder_level', 'low_stock'],
+      ['product_name', 'business_line', 'product_type', 'vendor_name', 'commission_percent', 'category', 'sell_unit', 'pack_size', 'cost_per_item', 'sale_price_per_sell_unit'],
       rows,
     ),
   };
@@ -181,7 +154,6 @@ export async function buildSummaryCsv(): Promise<CsvResult> {
     ['expense_rows_saved', snapshot.expenses.length],
     ['giveaway_rows_saved', snapshot.giveaways.length],
     ['products_saved', snapshot.productSnapshots.length],
-    ['low_stock_items', snapshot.lowStockItems.length],
     ['bakery_sales', snapshot.bakerySales],
     ['bakery_profit', snapshot.bakeryProfit],
     ['bakery_my_product_sales', snapshot.bakeryMyProductSales],
@@ -237,7 +209,6 @@ export async function getBusinessHistorySnapshot() {
     salesHistorySource: details.salesHistorySource,
     expensesSource: details.expensesSource,
     giveawaysSource: details.giveawaysSource,
-    inventorySource: details.inventorySource,
     counts: {
       products: state.products.length,
       archivedProducts: (dashboard.archivedProducts ?? []).length,
@@ -248,9 +219,6 @@ export async function getBusinessHistorySnapshot() {
       voidedSales: (dashboard.auditSales ?? []).filter((item) => item.status === 'voided').length,
       voidedExpenses: (dashboard.auditExpenses ?? []).filter((item) => item.status === 'voided').length,
       voidedGiveaways: (dashboard.auditGiveaways ?? []).filter((item) => item.status === 'voided').length,
-      restocks: (dashboard.restocks ?? []).length,
-      inventoryItems: dashboard.productSnapshots.length,
-      lowStockItems: dashboard.lowStockItems.length,
     },
     newestSale,
     newestExpense,

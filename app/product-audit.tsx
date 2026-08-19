@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { router, useFocusEffect } from 'expo-router';
+import { useFocusEffect } from 'expo-router';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { AppScreen } from '../supabase/src/components/ui/AppScreen';
 import { Button } from '../supabase/src/components/ui/Button';
@@ -10,9 +10,9 @@ import { SectionHeader } from '../supabase/src/components/ui/SectionHeader';
 import { TextField } from '../supabase/src/components/ui/TextField';
 import { theme } from '../supabase/src/constants/theme';
 import { archiveProduct, getDashboardSnapshot, getPackageCost, getProductById, getProductCostStatusLabel, getProductSellUnitDescription, restoreProduct, subscribeBusinessState, updateProduct } from '../supabase/src/features/business/store';
-import { formatNumber, formatWithUnit } from '../supabase/src/lib/format';
+import { formatWithUnit } from '../supabase/src/lib/format';
 
-type AuditFilter = 'cost-pending' | 'low-stock' | 'starting-stock' | 'reorder-review' | 'archived' | 'all';
+type AuditFilter = 'cost-pending' | 'archived' | 'all';
 
 function parseNumber(value: string, fallback = 0) {
   const parsed = Number(value.trim());
@@ -26,8 +26,6 @@ export default function ProductAuditScreen() {
   const [selectedProductId, setSelectedProductId] = useState('');
   const [costPerSellUnit, setCostPerSellUnit] = useState('0');
   const [salePrice, setSalePrice] = useState('0');
-  const [startingStock, setStartingStock] = useState('0');
-  const [reorderLevel, setReorderLevel] = useState('0');
   const [saving, setSaving] = useState(false);
   const [showOnlyFlagged, setShowOnlyFlagged] = useState(true);
 
@@ -44,11 +42,8 @@ export default function ProductAuditScreen() {
     const items = snapshot?.auditProductSnapshots ?? [];
     switch (filter) {
       case 'cost-pending': return items.filter((item) => item.costMissing);
-      case 'low-stock': return items.filter((item) => item.lowStock);
-      case 'starting-stock': return items.filter((item) => item.startingInventory <= 0);
-      case 'reorder-review': return items.filter((item) => item.reorderLevel <= 0 || item.reorderLevel >= Math.max(1, item.startingInventory));
       case 'archived': return items.filter((item) => item.status === 'archived');
-      default: return showOnlyFlagged ? items.filter((item) => item.costMissing || item.lowStock || item.startingInventory <= 0 || item.reorderLevel <= 0 || item.reorderLevel >= Math.max(1, item.startingInventory) || item.status === 'archived') : items;
+      default: return showOnlyFlagged ? items.filter((item) => item.costMissing || item.status === 'archived') : items;
     }
   }, [filter, showOnlyFlagged, snapshot?.auditProductSnapshots]);
 
@@ -68,8 +63,6 @@ export default function ProductAuditScreen() {
     if (!selectedProduct) return;
     setCostPerSellUnit(String(selectedProduct.costPerSellUnit));
     setSalePrice(String(selectedProduct.sellingPrice));
-    setStartingStock(String(selectedProduct.startingInventory));
-    setReorderLevel(String(selectedProduct.reorderLevel));
   }, [selectedProduct?.productId]);
 
   async function handleQuickSave() {
@@ -92,8 +85,8 @@ export default function ProductAuditScreen() {
         sellUnitType: fullProduct.sellUnitType,
         customUnitName: fullProduct.customUnitName,
         packSize: fullProduct.packSize,
-        startingInventory: parseNumber(startingStock, fullProduct.startingInventory),
-        reorderLevel: parseNumber(reorderLevel, fullProduct.reorderLevel),
+        startingInventory: fullProduct.startingInventory,
+        reorderLevel: fullProduct.reorderLevel,
         notes: fullProduct.notes,
         batchSize: fullProduct.batchSize,
         batchCost: fullProduct.batchCost,
@@ -131,7 +124,7 @@ export default function ProductAuditScreen() {
 
   return (
     <AppScreen>
-      <ScreenIntro eyebrow="Product Audit" title="Product audit" subtitle="Quick cleanup for Cost Pending, low stock, archived products, and setup values that need trust work." />
+      <ScreenIntro eyebrow="Product Audit" title="Product audit" subtitle="Quick cleanup for Cost Pending and archived products." />
       <InlineStatus message={statusMessage} />
 
       <Card>
@@ -139,9 +132,6 @@ export default function ProductAuditScreen() {
         <View style={styles.chipRow}>
           {[
             ['cost-pending', 'Cost Pending'],
-            ['low-stock', 'Low Stock'],
-            ['starting-stock', 'Zero Start'],
-            ['reorder-review', 'Reorder Review'],
             ['archived', 'Archived'],
             ['all', 'All'],
           ].map(([value, label]) => (
@@ -156,14 +146,12 @@ export default function ProductAuditScreen() {
       </Card>
 
       <Card>
-        <SectionHeader title="Products needing review" subtitle="Archived products stay here for audit, but are hidden from new sales, giveaways, and restocks." />
+        <SectionHeader title="Products needing review" subtitle="Archived products stay here for audit, but are hidden from new sales and giveaways." />
         {filteredProducts.length ? filteredProducts.map((item) => (
           <Pressable key={item.productId} style={[styles.productCard, selectedProductId === item.productId ? styles.productCardActive : null]} onPress={() => setSelectedProductId(item.productId)}>
             <Text style={styles.productTitle}>{item.name} — {getProductSellUnitDescription(item)}</Text>
             <Text style={styles.productMeta}>{item.businessType === 'bakery' ? 'Bakery' : 'Craft'} · {item.category} · {item.status === 'archived' ? 'Archived' : 'Active'} · {getProductCostStatusLabel(item)}</Text>
-            <Text style={styles.productMeta}>Stock {formatNumber(item.quantityOnHand, 0)} · Reorder {formatNumber(item.reorderLevel, 0)} · {item.inventoryStatusLabel}{item.lastRestockDate ? ` · Last restock ${item.lastRestockDate}` : ''}</Text>
             <Text style={styles.productMeta}>Sale {formatWithUnit(item.sellingPrice, '$', 2)} · Cost per sell unit {formatWithUnit(item.costPerSellUnit, '$', 2)}</Text>
-            {item.status !== 'archived' ? <Pressable style={styles.inlineAction} onPress={() => router.push({ pathname: '/restock', params: { productId: item.productId } })}><Text style={styles.inlineActionLabel}>Restock</Text></Pressable> : null}
           </Pressable>
         )) : <Text style={styles.emptyText}>Nothing in this audit bucket right now.</Text>}
       </Card>
@@ -172,20 +160,14 @@ export default function ProductAuditScreen() {
         <Card>
           <SectionHeader title="Quick edit" subtitle="Faster than opening the full product form for small cleanup work." />
           <Text style={styles.quickTitle}>{selectedProduct.name}</Text>
-          <Text style={styles.productMeta}>{selectedProduct.status === 'archived' ? 'Archived' : 'Active'} · {selectedProduct.costMissing ? 'Cost Pending' : 'Cost Set'} · Current stock {formatNumber(selectedProduct.quantityOnHand, 0)} · Reorder {formatNumber(selectedProduct.reorderLevel, 0)} · {selectedProduct.inventoryStatusLabel}</Text>
-          {selectedProduct.lastRestockDate ? <Text style={styles.productMeta}>Last restock {selectedProduct.lastRestockDate}</Text> : null}
+          <Text style={styles.productMeta}>{selectedProduct.status === 'archived' ? 'Archived' : 'Active'} · {selectedProduct.costMissing ? 'Cost Pending' : 'Cost Set'}</Text>
           <View style={styles.fieldGrid}>
             <View style={styles.fieldCell}><TextField label="Sale price per sell unit" value={salePrice} onChangeText={setSalePrice} keyboardType="numeric" dense /></View>
             <View style={styles.fieldCell}><TextField label="Cost per sell unit" value={costPerSellUnit} onChangeText={setCostPerSellUnit} keyboardType="numeric" dense /></View>
           </View>
-          <View style={styles.fieldGrid}>
-            <View style={styles.fieldCell}><TextField label="Starting stock" value={startingStock} onChangeText={setStartingStock} keyboardType="numeric" dense /></View>
-            <View style={styles.fieldCell}><TextField label="Reorder level" value={reorderLevel} onChangeText={setReorderLevel} keyboardType="numeric" dense /></View>
-          </View>
           {selectedProduct.costMissing ? <Text style={styles.warningText}>Cost Pending. Profit not trusted yet.</Text> : null}
           <View style={styles.buttonRow}>
             <Button label={saving ? 'Saving…' : 'Save Quick Edit'} onPress={() => { void handleQuickSave(); }} disabled={saving} />
-            {selectedProduct.status !== 'archived' ? <Button label="Restock" onPress={() => router.push({ pathname: '/restock', params: { productId: selectedProduct.productId } })} disabled={saving} /> : null}
             <Button label={selectedProduct.status === 'archived' ? 'Restore Product' : 'Archive Product'} onPress={() => { void handleArchiveToggle(); }} disabled={saving} />
           </View>
         </Card>

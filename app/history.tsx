@@ -11,7 +11,7 @@ import { ScreenIntro } from '../supabase/src/components/ui/ScreenIntro';
 import { SectionHeader } from '../supabase/src/components/ui/SectionHeader';
 import { StatRow } from '../supabase/src/components/ui/StatRow';
 import { theme } from '../supabase/src/constants/theme';
-import { buildExpensesCsv, buildGiveawaysCsv, buildInventoryCsv, buildProductsCsv, buildSalesCsv, buildSummaryCsv, downloadCsvFile, getBusinessHistorySnapshot } from '../supabase/src/features/business/export';
+import { buildExpensesCsv, buildGiveawaysCsv, buildProductsCsv, buildSalesCsv, buildSummaryCsv, downloadCsvFile, getBusinessHistorySnapshot } from '../supabase/src/features/business/export';
 import { archiveProduct, deleteProduct, getDashboardSnapshot, getProductCostStatusLabel, getProductSellUnitDescription, getProductSellUnitLabel, getSaleProfitStatusLabel, listProducts, productHasSavedHistory, restoreExpense, restoreGiveaway, restoreProduct, restoreSale, subscribeBusinessState, voidExpense, voidGiveaway, voidSale } from '../supabase/src/features/business/store';
 import { confirmAction } from '../supabase/src/lib/confirmAction';
 import { formatNumber, formatWithUnit } from '../supabase/src/lib/format';
@@ -27,7 +27,7 @@ export default function HistoryScreen() {
   const [dashboard, setDashboard] = useState<Awaited<ReturnType<typeof getDashboardSnapshot>> | null>(null);
   const [products, setProducts] = useState<Awaited<ReturnType<typeof listProducts>>>([]);
   const [preview, setPreview] = useState<ExportPreview>(null);
-  const [historyFilter, setHistoryFilter] = useState<'all' | 'sales' | 'expenses' | 'giveaways' | 'restocks'>('all');
+  const [historyFilter, setHistoryFilter] = useState<'all' | 'sales' | 'expenses' | 'giveaways'>('all');
 
   const refresh = useCallback(async () => {
     const [next, nextDashboard, nextProducts] = await Promise.all([getBusinessHistorySnapshot(), getDashboardSnapshot(), listProducts(undefined, { includeArchived: true })]);
@@ -35,7 +35,7 @@ export default function HistoryScreen() {
     setDashboard(nextDashboard);
     setProducts(nextProducts);
     setStatusMessage(next.counts.sales || next.counts.expenses || next.counts.giveaways
-      ? 'Saved sales, expenses, giveaways, products, and inventory history are ready to review or export.'
+      ? 'Saved sales, expenses, giveaways, and products are ready to review or export.'
       : 'The history area is ready. Add products, sales, expenses, or giveaways, then export when you want.');
   }, []);
 
@@ -47,7 +47,6 @@ export default function HistoryScreen() {
     { label: 'Export Expenses CSV', run: buildExpensesCsv },
     { label: 'Export Giveaways CSV', run: buildGiveawaysCsv },
     { label: 'Export Products CSV', run: buildProductsCsv },
-    { label: 'Export Inventory CSV', run: buildInventoryCsv },
     { label: 'Export Summary CSV', run: buildSummaryCsv },
   ]), []);
 
@@ -58,7 +57,6 @@ export default function HistoryScreen() {
   const voidedSales = dashboard?.auditSales.filter((item) => item.status === 'voided').slice(0, 6) ?? [];
   const voidedExpenses = dashboard?.auditExpenses.filter((item) => item.status === 'voided').slice(0, 6) ?? [];
   const voidedGiveaways = dashboard?.auditGiveaways.filter((item) => item.status === 'voided').slice(0, 6) ?? [];
-  const recentRestocks = dashboard?.restocks.slice(0, 6) ?? [];
   const recentProducts = [...products].sort((a, b) => `${b.updatedAt}`.localeCompare(`${a.updatedAt}`)).slice(0, 6);
   const helperCommissionRecords = dashboard?.helperCommissions ?? [];
   const unpaidHelperCommissionTotal = helperCommissionRecords.reduce((sum, item) => sum + (item.paid ? 0 : Number(item.commissionAmount || 0)), 0);
@@ -164,9 +162,6 @@ export default function HistoryScreen() {
         <StatRow label="Voided sales rows" value={formatNumber(snapshot?.counts.voidedSales, 0)} />
         <StatRow label="Voided expenses" value={formatNumber(snapshot?.counts.voidedExpenses, 0)} />
         <StatRow label="Voided giveaways" value={formatNumber(snapshot?.counts.voidedGiveaways, 0)} />
-        <StatRow label="Restock rows" value={formatNumber(snapshot?.counts.restocks, 0)} />
-        <StatRow label="Inventory snapshots" value={formatNumber(snapshot?.counts.inventoryItems, 0)} />
-        <StatRow label="Low stock items" value={formatNumber(snapshot?.counts.lowStockItems, 0)} />
       </Card>
 
       <Card>
@@ -177,7 +172,6 @@ export default function HistoryScreen() {
         <Text style={styles.infoText}>Saved sales history comes from: <Text style={styles.infoStrong}>{snapshot?.salesHistorySource ?? '—'}</Text></Text>
         <Text style={styles.infoText}>Saved expenses come from: <Text style={styles.infoStrong}>{snapshot?.expensesSource ?? '—'}</Text></Text>
         <Text style={styles.infoText}>Saved giveaways come from: <Text style={styles.infoStrong}>{snapshot?.giveawaysSource ?? '—'}</Text></Text>
-        <Text style={styles.infoText}>{snapshot?.inventorySource ?? '—'}</Text>
       </Card>
 
       <Card>
@@ -220,7 +214,6 @@ export default function HistoryScreen() {
             ['sales', 'Sales'],
             ['expenses', 'Expenses'],
             ['giveaways', 'Giveaways'],
-            ['restocks', 'Restocks'],
           ].map(([value, label]) => (
             <Pressable key={value} style={[styles.filterChip, historyFilter === value ? styles.filterChipActive : null]} onPress={() => setHistoryFilter(value as typeof historyFilter)}>
               <Text style={[styles.filterChipLabel, historyFilter === value ? styles.filterChipLabelActive : null]}>{label}</Text>
@@ -233,9 +226,9 @@ export default function HistoryScreen() {
           <View key={item.productId} style={styles.rowCard}>
             <Text style={styles.rowTitle}>{item.name} — {getProductSellUnitDescription(item)}</Text>
             <Text style={styles.rowMeta}>{item.businessType === 'bakery' ? 'Bakery' : 'Craft'} · {item.category} · {item.productType === 'third-party' ? '3rd Party' : 'My Product'} · {item.status === 'archived' ? 'Archived' : 'Active'}{item.productType === 'third-party' ? ` · ${item.vendorName || 'Vendor'} · ${formatNumber(item.commissionPercent, 0)}% commission` : ` · ${getProductCostStatusLabel(item)}`}</Text>
-            <Text style={styles.rowMeta}>{formatWithUnit(item.sellingPrice, '$', 2)} per sell unit · start {formatNumber(item.startingInventory, 0)}</Text>
+            <Text style={styles.rowMeta}>{formatWithUnit(item.sellingPrice, '$', 2)} per sell unit</Text>
             <RecordActionRow
-              onView={() => Alert.alert(item.name, [`${item.businessType === 'bakery' ? 'Bakery' : 'Crafts'} · ${item.category}`, `Type: ${item.productType === 'third-party' ? '3rd Party' : 'My Product'}`, getProductSellUnitDescription(item), `Sale price: ${formatWithUnit(item.sellingPrice, '$', 2)}`, item.productType === 'third-party' ? `Vendor: ${item.vendorName || '—'}` : `Cost per sell unit: ${formatWithUnit(item.cost, '$', 2)}`, item.productType === 'third-party' ? `Commission percent: ${formatNumber(item.commissionPercent, 0)}%` : `Starting inventory: ${formatNumber(item.startingInventory, 0)}`, `Reorder level: ${formatNumber(item.reorderLevel, 0)}`, item.notes || 'No notes saved.'].join('\n'))}
+              onView={() => Alert.alert(item.name, [`${item.businessType === 'bakery' ? 'Bakery' : 'Crafts'} · ${item.category}`, `Type: ${item.productType === 'third-party' ? '3rd Party' : 'My Product'}`, getProductSellUnitDescription(item), `Sale price: ${formatWithUnit(item.sellingPrice, '$', 2)}`, item.productType === 'third-party' ? `Vendor: ${item.vendorName || '—'}` : `Cost per sell unit: ${formatWithUnit(item.cost, '$', 2)}`, item.productType === 'third-party' ? `Commission percent: ${formatNumber(item.commissionPercent, 0)}%` : `Profit per sell unit: ${formatWithUnit(item.sellingPrice - item.cost, '$', 2)}`, item.notes || 'No notes saved.'].join('\n'))}
               onEdit={() => router.push({ pathname: '/product', params: { productId: item.productId } })}
               onDelete={() => {
                 void (async () => {
@@ -325,19 +318,6 @@ export default function HistoryScreen() {
 
         </> : null}
 
-        {historyFilter === 'all' || historyFilter === 'restocks' ? <>
-        <Text style={styles.groupTitle}>Recent restocks</Text>
-        {recentRestocks.length ? recentRestocks.map((restock) => (
-          <View key={restock.restockId} style={styles.rowCard}>
-            <Text style={styles.rowTitle}>{restock.productName} — restocked</Text>
-            <Text style={styles.rowMeta}>{restock.businessType === 'bakery' ? 'Bakery' : 'Craft'} · {restock.date} · {formatNumber(restock.quantityAdded, 0)} units added</Text>
-            <Text style={styles.rowMeta}>Stock before {formatNumber(restock.quantityBefore ?? 0, 0)} · stock after {formatNumber(restock.quantityAfter ?? 0, 0)}</Text>
-            <Text style={styles.rowMeta}>{restock.note || restock.notes || 'No note saved.'}</Text>
-          </View>
-        )) : <Text style={styles.emptyText}>No restocks yet.</Text>}
-
-        </> : null}
-
         {historyFilter === 'all' || historyFilter === 'sales' ? <>
         <Text style={styles.groupTitle}>Voided sales</Text>
         {voidedSales.length ? voidedSales.map((sale) => (
@@ -375,7 +355,7 @@ export default function HistoryScreen() {
       </Card>
 
       <Card>
-        <SectionHeader title="CSV export" subtitle="Separate downloads for sales, expenses, giveaways, products, inventory, and monthly summary data." />
+        <SectionHeader title="CSV export" subtitle="Separate downloads for sales, expenses, giveaways, products, and monthly summary data." />
         <View style={styles.exportCallout}>
           <Ionicons name="download-outline" size={20} color={theme.colors.accent} />
           <Text style={styles.exportCalloutText}>Tap any button below to download a CSV file for backup or spreadsheet use.</Text>

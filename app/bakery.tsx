@@ -12,7 +12,7 @@ import { getBusinessSectionSnapshot, getProductSellUnitDescription, getProductSe
 import { formatNumber, formatWithUnit } from '../supabase/src/lib/format';
 
 export default function BakeryScreen() {
-  const [statusMessage, setStatusMessage] = useState('Sweet Tarts baking products, sales, and stock in one place.');
+  const [statusMessage, setStatusMessage] = useState('Sweet Tarts baking products and sales in one place.');
   const [snapshot, setSnapshot] = useState<Awaited<ReturnType<typeof getBusinessSectionSnapshot>> | null>(null);
 
   const refresh = useCallback(async () => {
@@ -35,21 +35,21 @@ export default function BakeryScreen() {
           <View style={styles.summaryTile}><Text style={styles.summaryValue}>{formatNumber(snapshot?.products.length, 0)}</Text><Text style={styles.summaryLabel}>Products</Text></View>
           <View style={styles.summaryTile}><Text style={styles.summaryValue}>{formatWithUnit(snapshot?.totalSales, '$', 2)}</Text><Text style={styles.summaryLabel}>Sales</Text></View>
           <View style={styles.summaryTile}><Text style={styles.summaryValue}>{formatWithUnit(snapshot?.totalProfit, '$', 2)}</Text><Text style={styles.summaryLabel}>Profit</Text></View>
-          <View style={styles.summaryTile}><Text style={styles.summaryValue}>{formatNumber(snapshot?.lowStockItems.length, 0)}</Text><Text style={styles.summaryLabel}>Need baking</Text></View>
+          <View style={styles.summaryTile}><Text style={styles.summaryValue}>{formatNumber(snapshot?.sales.length, 0)}</Text><Text style={styles.summaryLabel}>Sales rows</Text></View>
         </View>
         <Button label="Add Bakery Product" onPress={() => router.push('/product')} />
         <Button label="Add Bakery Sale" onPress={() => router.push('/sale')} />
       </Card>
 
       <Card>
-        <SectionHeader title="Bakery products" subtitle="Product unit, package cost, selling price, stock, and profit in one scan." />
+        <SectionHeader title="Bakery products" subtitle="Product unit, package cost, selling price, units sold, and profit in one scan." />
         {snapshot?.products.length ? snapshot.products.map((item) => (
           <View key={item.productId} style={styles.rowCard}>
             <Text style={styles.rowTitle}>{item.name} — {getProductSellUnitDescription(item)}</Text>
             <Text style={styles.rowMeta}>{item.category}</Text>
             <Text style={styles.rowMeta}>Selling as {getProductSellUnitDescription(item)} · Price {formatWithUnit(item.sellingPrice, '$', 2)}</Text>
             <Text style={styles.rowMeta}>Cost per sell unit {formatWithUnit(item.costPerSellUnit, '$', 2)}</Text>
-            <Text style={styles.rowMeta}>On hand {formatNumber(item.quantityOnHand, 0)} {getProductSellUnitLabel(item, item.quantityOnHand)} · Sold {formatNumber(item.quantitySold, 0)} {getProductSellUnitLabel(item, item.quantitySold)} · Profit {formatWithUnit(item.profit, '$', 2)}</Text>
+            <Text style={styles.rowMeta}>Sold {formatNumber(item.quantitySold, 0)} {getProductSellUnitLabel(item, item.quantitySold)} · Profit {formatWithUnit(item.profit, '$', 2)}</Text>
           </View>
         )) : <Text style={styles.emptyText}>No bakery products yet.</Text>}
       </Card>
