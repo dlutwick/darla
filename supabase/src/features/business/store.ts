@@ -2507,6 +2507,10 @@ export async function addExpense(input: {
   amount: number;
   note?: string | null;
 }) {
+  if (input.expenseType === 'vendor-payment') {
+    throw new Error('New vendor payment expense rows are no longer supported.');
+  }
+
   const state = await loadBusinessState();
   const expense = normalizeExpenseRecord({
     date: input.date,
@@ -2540,6 +2544,9 @@ export async function updateExpense(expenseId: string, input: {
   const existing = state.expenses.find((item) => item.expenseId === expenseId);
   if (!existing) {
     throw new Error('Expense not found.');
+  }
+  if (input.expenseType === 'vendor-payment' && normalizeExpenseType(existing.expenseType) !== 'vendor-payment') {
+    throw new Error('Expense rows cannot be converted to vendor payments.');
   }
 
   const updatedExpense = normalizeExpenseRecord({
@@ -3041,7 +3048,7 @@ function sumQuantity(sales: Partial<SaleRecord>[]) {
 }
 
 function sumExpenses(expenses: Partial<ExpenseRecord>[]) {
-  return Number(expenses.filter((expense) => normalizeExpenseType(expense.expenseType) !== 'vendor-payment').reduce((sum, expense) => sum + toSafeNumber(expense.amount), 0).toFixed(2));
+  return Number(expenses.reduce((sum, expense) => sum + toSafeNumber(expense.amount), 0).toFixed(2));
 }
 
 function sumVendorPayments(expenses: Partial<ExpenseRecord>[]) {

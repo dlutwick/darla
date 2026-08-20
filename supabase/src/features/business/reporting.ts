@@ -80,7 +80,7 @@ export function sumQuantity(rows: SalesRow[]) {
 }
 
 export function sumExpenses(rows: ExpenseRow[]) {
-  return Number(rows.filter((row) => isActiveRow(row) && !isVendorPayment(row)).reduce((sum, row) => sum + Number(row.amount || 0), 0).toFixed(2));
+  return Number(rows.filter(isActiveRow).reduce((sum, row) => sum + Number(row.amount || 0), 0).toFixed(2));
 }
 
 export function sumVendorPayments(rows: ExpenseRow[]) {

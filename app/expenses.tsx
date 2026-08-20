@@ -46,6 +46,7 @@ export default function ExpensesScreen() {
   const [note, setNote] = useState('');
   const [saving, setSaving] = useState(false);
   const [scheduledMarketFees, setScheduledMarketFees] = useState<Awaited<ReturnType<typeof getDashboardSnapshot>>['expenses']>([]);
+  const isHistoricalVendorPayment = isEditing && expenseType === 'vendor-payment';
 
   async function refreshScheduledMarketFees() {
     const snapshot = await getDashboardSnapshot();
@@ -99,8 +100,11 @@ export default function ExpensesScreen() {
       if (!expenseCategory.trim()) {
         throw new Error('Choose or type an expense category.');
       }
-      if (expenseType === 'vendor-payment' && !vendor.trim()) {
-        throw new Error('Vendor name is required for a vendor payment.');
+      if (!isEditing && expenseType === 'vendor-payment') {
+        throw new Error('New vendor payment expense rows are no longer supported.');
+      }
+      if (isHistoricalVendorPayment && !vendor.trim()) {
+        throw new Error('Vendor name is required for a historical vendor payment.');
       }
 
       const parsedAmount = parsePositive(amount, 'Amount');
@@ -202,17 +206,16 @@ export default function ExpensesScreen() {
 
       <Card>
         <SectionHeader title="Expense row" subtitle="Pick or type the category, then save the amount against the right month." />
-        <Text style={styles.fieldLabel}>Row type</Text>
-        <View style={styles.categoryGrid}>
-          {([
-            ['expense', 'Expense'],
-            ['vendor-payment', 'Vendor Payment'],
-          ] as [ExpenseType, string][]).map(([value, label]) => (
-            <Pressable key={value} style={[styles.categoryChip, expenseType === value ? styles.categoryChipActive : null]} onPress={() => setExpenseType(value)}>
-              <Text style={[styles.categoryLabel, expenseType === value ? styles.categoryLabelActive : null]}>{label}</Text>
-            </Pressable>
-          ))}
-        </View>
+        {isHistoricalVendorPayment ? (
+          <>
+            <Text style={styles.fieldLabel}>Row type</Text>
+            <View style={styles.categoryGrid}>
+              <View style={[styles.categoryChip, styles.categoryChipActive]}>
+                <Text style={[styles.categoryLabel, styles.categoryLabelActive]}>Vendor Payment</Text>
+              </View>
+            </View>
+          </>
+        ) : null}
         <View style={styles.fieldGrid}>
           <View style={styles.fieldCell}><TextField label="Date" value={date} onChangeText={setDate} placeholder="YYYY-MM-DD" dense /></View>
           <View style={styles.fieldCell}><TextField label="Month" value={month} onChangeText={setMonth} placeholder="YYYY-MM" dense /></View>
