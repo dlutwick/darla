@@ -247,12 +247,26 @@ export const PAYMENT_TYPES: PaymentType[] = ['cash', 'e-transfer', 'card', 'othe
 export const ORDER_STATUSES: OrderStatus[] = ['new', 'in progress', 'ready', 'picked up', 'paid'];
 export const SELL_UNIT_TYPES: SellUnitType[] = ['each', 'loaf', 'pack', 'custom'];
 export const MARKET_FEES_EVENTS_CATEGORY = 'Event Fees';
-export const AUTOMATIC_MONTHLY_EXPENSES = [
+export const AUTOMATIC_MONTHLY_EXPENSE_CHANGE_DATE = '2026-09-01';
+export const AUTOMATIC_MONTHLY_EXPENSES_BEFORE_SEPTEMBER_2026 = [
   { name: 'Craft Booth Fee', amount: 70, category: MARKET_FEES_EVENTS_CATEGORY, vendor: 'Craft Booth Fee', businessType: 'craft' as const },
   { name: 'Fridge Fee', amount: 12, category: 'Utilities & Overhead', vendor: 'Fridge Fee', businessType: 'bakery' as const },
   { name: 'Tax', amount: 12.30, category: 'Taxes & Fees', vendor: 'Tax', businessType: 'bakery' as const },
 ];
+export const AUTOMATIC_MONTHLY_EXPENSES_FROM_SEPTEMBER_2026 = [
+  { name: 'Booth + Fridge Fee', amount: 146, category: MARKET_FEES_EVENTS_CATEGORY, vendor: 'Booth + Fridge Fee', businessType: 'craft' as const },
+];
+export const AUTOMATIC_MONTHLY_EXPENSES = AUTOMATIC_MONTHLY_EXPENSES_BEFORE_SEPTEMBER_2026;
 export const AUTOMATIC_MONTHLY_EXPENSE_TOTAL = Number(AUTOMATIC_MONTHLY_EXPENSES.reduce((sum, expense) => sum + expense.amount, 0).toFixed(2));
+export function getAutomaticMonthlyExpensesForDate(currentDate = getLocalDay()) {
+  const monthStart = `${getMonthKey(currentDate.slice(0, 10) as ISODate)}-01`;
+  return monthStart >= AUTOMATIC_MONTHLY_EXPENSE_CHANGE_DATE
+    ? AUTOMATIC_MONTHLY_EXPENSES_FROM_SEPTEMBER_2026
+    : AUTOMATIC_MONTHLY_EXPENSES_BEFORE_SEPTEMBER_2026;
+}
+export function getAutomaticMonthlyExpenseTotalForDate(currentDate = getLocalDay()) {
+  return Number(getAutomaticMonthlyExpensesForDate(currentDate).reduce((sum, expense) => sum + expense.amount, 0).toFixed(2));
+}
 export const HARTLAND_FARM_MARKET_FEE_AMOUNT = 25;
 export const HARTLAND_FARM_MARKET_FEE_VENDOR = 'Hartland Farm Market';
 export const HARTLAND_FARM_MARKET_FEE_CATEGORY = MARKET_FEES_EVENTS_CATEGORY;
@@ -1418,7 +1432,7 @@ function buildAutomaticExpenseDrafts(currentDate = getLocalDay()): AutomaticExpe
   const firstOfMonth = `${currentMonth}-01` as ISODate;
   const timestamp = nowIso();
   const monthlyDrafts = today >= firstOfMonth
-    ? AUTOMATIC_MONTHLY_EXPENSES.map((expense) => ({
+    ? getAutomaticMonthlyExpensesForDate(today).map((expense) => ({
       date: firstOfMonth,
       month: currentMonth,
       expenseType: 'expense' as const,

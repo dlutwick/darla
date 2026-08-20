@@ -11,7 +11,7 @@ import { SectionHeader } from '../supabase/src/components/ui/SectionHeader';
 import { StatRow } from '../supabase/src/components/ui/StatRow';
 import { TextField } from '../supabase/src/components/ui/TextField';
 import { theme } from '../supabase/src/constants/theme';
-import { addExpense, AUTOMATIC_MONTHLY_EXPENSES, AUTOMATIC_MONTHLY_EXPENSE_TOTAL, BusinessType, ExpenseType, getDashboardSnapshot, getExpenseById, HARTLAND_FARM_MARKET_FEE_AMOUNT, HARTLAND_FARM_MARKET_FEE_CATEGORY, HARTLAND_FARM_MARKET_FEE_VENDOR, updateExpense, voidExpense } from '../supabase/src/features/business/store';
+import { addExpense, BusinessType, ExpenseType, getAutomaticMonthlyExpensesForDate, getAutomaticMonthlyExpenseTotalForDate, getDashboardSnapshot, getExpenseById, HARTLAND_FARM_MARKET_FEE_AMOUNT, HARTLAND_FARM_MARKET_FEE_CATEGORY, HARTLAND_FARM_MARKET_FEE_VENDOR, updateExpense, voidExpense } from '../supabase/src/features/business/store';
 import { confirmAction } from '../supabase/src/lib/confirmAction';
 import { getLocalDay } from '../supabase/src/lib/date';
 import { formatWithUnit } from '../supabase/src/lib/format';
@@ -84,6 +84,8 @@ export default function ExpensesScreen() {
   }, []);
 
   const amountPreview = amount.trim() ? Number(amount) : 0;
+  const automaticMonthlyExpenses = getAutomaticMonthlyExpensesForDate(date);
+  const automaticMonthlyExpenseTotal = getAutomaticMonthlyExpenseTotalForDate(date);
 
   useEffect(() => {
     if (month !== getMonthFromDate(date) && !month.trim()) {
@@ -154,10 +156,10 @@ export default function ExpensesScreen() {
 
       <Card>
         <SectionHeader title="Monthly automatic expenses" subtitle="These post automatically on the 1st of each month." />
-        {AUTOMATIC_MONTHLY_EXPENSES.map((expense) => (
+        {automaticMonthlyExpenses.map((expense) => (
           <StatRow key={expense.name} label={expense.name} value={formatWithUnit(expense.amount, '$', 2)} />
         ))}
-        <StatRow label="Monthly recurring total" value={formatWithUnit(AUTOMATIC_MONTHLY_EXPENSE_TOTAL, '$', 2)} />
+        <StatRow label="Monthly recurring total" value={formatWithUnit(automaticMonthlyExpenseTotal, '$', 2)} />
       </Card>
 
       <Card>
