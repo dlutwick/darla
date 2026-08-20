@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { router, useFocusEffect } from 'expo-router';
-import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Alert, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { AppScreen } from '../supabase/src/components/ui/AppScreen';
 import { Button } from '../supabase/src/components/ui/Button';
@@ -28,6 +28,7 @@ export default function HistoryScreen() {
   const [products, setProducts] = useState<Awaited<ReturnType<typeof listProducts>>>([]);
   const [preview, setPreview] = useState<ExportPreview>(null);
   const [historyFilter, setHistoryFilter] = useState<'all' | 'sales' | 'expenses' | 'giveaways'>('all');
+  const [historySearch, setHistorySearch] = useState('');
 
   const refresh = useCallback(async () => {
     const [next, nextDashboard, nextProducts] = await Promise.all([getBusinessHistorySnapshot(), getDashboardSnapshot(), listProducts(undefined, { includeArchived: true })]);
@@ -50,13 +51,110 @@ export default function HistoryScreen() {
     { label: 'Export Summary CSV', run: buildSummaryCsv },
   ]), []);
 
-  const recentSales = dashboard?.sales.slice(0, 6) ?? [];
-  const recentExpenses = dashboard?.expenses.slice(0, 6) ?? [];
-  const recentGiveaways = dashboard?.giveaways.slice(0, 6) ?? [];
+  const searchText = historySearch.trim().toLowerCase();
+  function matchesHistorySearch(...values: unknown[]) {
+    if (!searchText) return true;
+    return values
+      .filter((value) => value != null)
+      .map((value) => String(value).toLowerCase())
+      .join(' ')
+      .includes(searchText);
+  }
+
+  const recentSales = (dashboard?.sales ?? []).filter((sale) => matchesHistorySearch(
+    sale.productName,
+    sale.itemName,
+    sale.date,
+    sale.month,
+    sale.businessType,
+    sale.productType,
+    sale.category,
+    sale.vendorName,
+    sale.note,
+    sale.notes,
+    sale.quantitySold,
+    sale.totalSale,
+    formatWithUnit(sale.totalSale, '$', 2),
+    sale.estimatedProfit,
+    sale.commissionEarned,
+    sale.vendorShare,
+  ));
+  const recentExpenses = (dashboard?.expenses ?? []).filter((expense) => matchesHistorySearch(
+    expense.date,
+    expense.month,
+    expense.expenseType,
+    expense.expenseCategory,
+    expense.vendor,
+    expense.businessType,
+    expense.businessLine,
+    expense.amount,
+    formatWithUnit(expense.amount, '$', 2),
+    expense.note,
+    expense.notes,
+  ));
+  const recentGiveaways = (dashboard?.giveaways ?? []).filter((giveaway) => matchesHistorySearch(
+    giveaway.productName,
+    giveaway.date,
+    giveaway.month,
+    giveaway.businessType,
+    giveaway.businessLine,
+    giveaway.category,
+    giveaway.quantityGivenAway,
+    giveaway.estimatedSaleValue,
+    formatWithUnit(giveaway.estimatedSaleValue, '$', 2),
+    giveaway.estimatedCost,
+    giveaway.reason,
+    giveaway.note,
+    giveaway.notes,
+  ));
   const recentHelperCommissions = dashboard?.helperCommissions.slice(0, 6) ?? [];
-  const voidedSales = dashboard?.auditSales.filter((item) => item.status === 'voided').slice(0, 6) ?? [];
-  const voidedExpenses = dashboard?.auditExpenses.filter((item) => item.status === 'voided').slice(0, 6) ?? [];
-  const voidedGiveaways = dashboard?.auditGiveaways.filter((item) => item.status === 'voided').slice(0, 6) ?? [];
+  const voidedSales = (dashboard?.auditSales ?? []).filter((sale) => sale.status === 'voided' && matchesHistorySearch(
+    sale.productName,
+    sale.itemName,
+    sale.date,
+    sale.month,
+    sale.businessType,
+    sale.productType,
+    sale.category,
+    sale.vendorName,
+    sale.note,
+    sale.notes,
+    sale.quantitySold,
+    sale.totalSale,
+    formatWithUnit(sale.totalSale, '$', 2),
+    sale.estimatedProfit,
+    sale.commissionEarned,
+    sale.vendorShare,
+  ));
+  const voidedExpenses = (dashboard?.auditExpenses ?? []).filter((expense) => expense.status === 'voided' && matchesHistorySearch(
+    expense.date,
+    expense.month,
+    expense.expenseType,
+    expense.expenseCategory,
+    expense.vendor,
+    expense.businessType,
+    expense.businessLine,
+    expense.amount,
+    formatWithUnit(expense.amount, '$', 2),
+    expense.note,
+    expense.notes,
+  ));
+  const voidedGiveaways = (dashboard?.auditGiveaways ?? []).filter((giveaway) => giveaway.status === 'voided' && matchesHistorySearch(
+    giveaway.productName,
+    giveaway.date,
+    giveaway.month,
+    giveaway.businessType,
+    giveaway.businessLine,
+    giveaway.category,
+    giveaway.quantityGivenAway,
+    giveaway.estimatedSaleValue,
+    formatWithUnit(giveaway.estimatedSaleValue, '$', 2),
+    giveaway.estimatedCost,
+    giveaway.reason,
+    giveaway.note,
+    giveaway.notes,
+  ));
+  const matchingHistoryCount = recentSales.length + recentExpenses.length + recentGiveaways.length + voidedSales.length + voidedExpenses.length + voidedGiveaways.length;
   const recentProducts = [...products].sort((a, b) => `${b.updatedAt}`.localeCompare(`${a.updatedAt}`)).slice(0, 6);
   const helperCommissionRecords = dashboard?.helperCommissions ?? [];
   const unpaidHelperCommissionTotal = helperCommissionRecords.reduce((sum, item) => sum + (item.paid ? 0 : Number(item.commissionAmount || 0)), 0);
@@ -207,7 +305,15 @@ export default function HistoryScreen() {
       </Card>
 
       <Card>
-        <SectionHeader title="Recent saved records" subtitle="Active rows are used in totals. Voided rows stay here for audit safety and can be restored." />
+        <SectionHeader title="Saved records" subtitle="Search all sales, expenses, giveaways, and voided rows. Active rows are used in totals, and voided rows stay for audit safety." />
+        <TextInput
+          style={styles.searchInput}
+          value={historySearch}
+          onChangeText={setHistorySearch}
+          placeholder="Search by date, name, category, vendor, type, note, or amount"
+          placeholderTextColor={theme.colors.mutedText}
+        />
+        <Text style={styles.resultText}>{searchText ? `${formatNumber(matchingHistoryCount, 0)} matching records` : 'Showing all saved sales, expenses, giveaways, and voided rows'}</Text>
         <View style={styles.filterRow}>
           {[
             ['all', 'All'],
@@ -255,7 +361,7 @@ export default function HistoryScreen() {
           </View>
         )) : <Text style={styles.emptyText}>No saved products yet.</Text>}
 
-        <Text style={styles.groupTitle}>Recent sales</Text>
+        <Text style={styles.groupTitle}>Sales</Text>
         {recentSales.length ? recentSales.map((sale) => (
           <View key={sale.saleId} style={styles.rowCard}>
             <Text style={styles.rowTitle}>{sale.productName} — {getProductSellUnitDescription(sale)}</Text>
@@ -272,12 +378,12 @@ export default function HistoryScreen() {
               deleteLabel="Void"
             />
           </View>
-        )) : <Text style={styles.emptyText}>No saved sales yet.</Text>}
+        )) : <Text style={styles.emptyText}>{searchText ? 'No matching sales.' : 'No saved sales yet.'}</Text>}
 
         </> : null}
 
         {historyFilter === 'all' || historyFilter === 'expenses' ? <>
-        <Text style={styles.groupTitle}>Recent expenses</Text>
+        <Text style={styles.groupTitle}>Expenses</Text>
         {recentExpenses.length ? recentExpenses.map((expense) => (
           <View key={expense.expenseId} style={styles.rowCard}>
             <Text style={styles.rowTitle}>{expense.expenseCategory} — {formatWithUnit(expense.amount, '$', 2)}</Text>
@@ -293,12 +399,12 @@ export default function HistoryScreen() {
               deleteLabel="Void"
             />
           </View>
-        )) : <Text style={styles.emptyText}>No saved expenses yet.</Text>}
+        )) : <Text style={styles.emptyText}>{searchText ? 'No matching expenses.' : 'No saved expenses yet.'}</Text>}
 
         </> : null}
 
         {historyFilter === 'all' || historyFilter === 'giveaways' ? <>
-        <Text style={styles.groupTitle}>Recent giveaways</Text>
+        <Text style={styles.groupTitle}>Giveaways</Text>
         {recentGiveaways.length ? recentGiveaways.map((giveaway) => (
           <View key={giveaway.giveawayId} style={styles.rowCard}>
             <Text style={styles.rowTitle}>{giveaway.productName} — {formatWithUnit(giveaway.estimatedSaleValue, '$', 2)} value</Text>
@@ -314,7 +420,7 @@ export default function HistoryScreen() {
               deleteLabel="Void"
             />
           </View>
-        )) : <Text style={styles.emptyText}>No saved giveaways yet.</Text>}
+        )) : <Text style={styles.emptyText}>{searchText ? 'No matching giveaways.' : 'No saved giveaways yet.'}</Text>}
 
         </> : null}
 
@@ -326,7 +432,7 @@ export default function HistoryScreen() {
             <Text style={styles.rowMeta}>{sale.date} · {sale.productType === 'third-party' ? '3rd Party' : 'My Product'} · {formatWithUnit(sale.totalSale, '$', 2)} · voided rows do not affect totals</Text>
             <RecordActionRow onView={() => Alert.alert(sale.productName, sale.productType === 'third-party' ? `Status: Voided\nDate: ${sale.date}\nType: 3rd Party\nVendor: ${sale.vendorName || '—'}\nRow total: ${formatWithUnit(sale.totalSale, '$', 2)}\nCommission earned: ${formatWithUnit(sale.commissionEarned ?? 0, '$', 2)}\nVendor share: ${formatWithUnit(sale.vendorShare ?? 0, '$', 2)}` : `Status: Voided\nDate: ${sale.date}\nTotal: ${formatWithUnit(sale.totalSale, '$', 2)}\nProfit: ${formatWithUnit(sale.estimatedProfit, '$', 2)}`)} onEdit={() => router.push({ pathname: '/sale', params: { saleId: sale.saleId } })} onDelete={() => { void (async () => { await restoreSale(sale.saleId); setStatusMessage(`${sale.productName} sale restored.`); await refresh(); })(); }} deleteLabel="Restore" />
           </View>
-        )) : <Text style={styles.emptyText}>No voided sales.</Text>}
+        )) : <Text style={styles.emptyText}>{searchText ? 'No matching voided sales.' : 'No voided sales.'}</Text>}
 
         </> : null}
 
@@ -338,7 +444,7 @@ export default function HistoryScreen() {
             <Text style={styles.rowMeta}>{expense.date} · {formatWithUnit(expense.amount, '$', 2)} · voided rows do not affect totals</Text>
             <RecordActionRow onView={() => Alert.alert(expense.expenseCategory, `Status: Voided\nDate: ${expense.date}\nAmount: ${formatWithUnit(expense.amount, '$', 2)}`)} onEdit={() => router.push({ pathname: '/expenses', params: { expenseId: expense.expenseId } })} onDelete={() => { void (async () => { await restoreExpense(expense.expenseId); setStatusMessage(`${expense.expenseCategory} expense restored.`); await refresh(); })(); }} deleteLabel="Restore" />
           </View>
-        )) : <Text style={styles.emptyText}>No voided expenses.</Text>}
+        )) : <Text style={styles.emptyText}>{searchText ? 'No matching voided expenses.' : 'No voided expenses.'}</Text>}
 
         </> : null}
 
@@ -350,7 +456,7 @@ export default function HistoryScreen() {
             <Text style={styles.rowMeta}>{giveaway.date} · {formatWithUnit(giveaway.estimatedSaleValue, '$', 2)} value · voided rows do not affect totals</Text>
             <RecordActionRow onView={() => Alert.alert(giveaway.productName, `Status: Voided\nDate: ${giveaway.date}\nValue: ${formatWithUnit(giveaway.estimatedSaleValue, '$', 2)}\nCost: ${formatWithUnit(giveaway.estimatedCost, '$', 2)}`)} onEdit={() => router.push({ pathname: '/giveaways', params: { giveawayId: giveaway.giveawayId } })} onDelete={() => { void (async () => { await restoreGiveaway(giveaway.giveawayId); setStatusMessage(`${giveaway.productName} giveaway restored.`); await refresh(); })(); }} deleteLabel="Restore" />
           </View>
-        )) : <Text style={styles.emptyText}>No voided giveaways.</Text>}
+        )) : <Text style={styles.emptyText}>{searchText ? 'No matching voided giveaways.' : 'No voided giveaways.'}</Text>}
         </> : null}
       </Card>
 
@@ -388,6 +494,8 @@ const styles = StyleSheet.create({
   helperActionRow: { marginTop: theme.spacing.sm, marginBottom: theme.spacing.xs },
   inlineActionRow: { marginTop: theme.spacing.xs, alignSelf: 'flex-start' },
   groupTitle: { color: theme.colors.text, fontSize: 15, fontWeight: '800', marginTop: 4 },
+  searchInput: { borderWidth: 1, borderColor: theme.colors.border, borderRadius: theme.radius.md, backgroundColor: theme.colors.surface, color: theme.colors.text, fontSize: 15, paddingHorizontal: theme.spacing.sm, paddingVertical: 10 },
+  resultText: { color: theme.colors.mutedText, fontSize: 13, lineHeight: 18 },
   filterRow: { flexDirection: 'row', flexWrap: 'wrap', gap: theme.spacing.xs, marginBottom: theme.spacing.xs },
   filterChip: { borderWidth: 1, borderColor: theme.colors.border, backgroundColor: theme.colors.softSurface, borderRadius: theme.radius.full, paddingHorizontal: 12, paddingVertical: 8 },
   filterChipActive: { backgroundColor: theme.colors.primary, borderColor: theme.colors.primary },
