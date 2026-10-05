@@ -45,6 +45,8 @@ async function main() {
   await expectText(page, 'Crafts');
   await expectText(page, '105 $');
   await expectText(page, 'Cookie Pack Test');
+  const overriddenBakerySale = page.getByText('Cookie Pack Test', { exact: false }).first().locator('..');
+  assert.match(await overriddenBakerySale.innerText(), /3 .* sold .*24\.00 \$/, 'saved summary should use the overridden $8 unit price for the 3-unit Cookie Pack Test sale');
   await expectText(page, 'Towel Test');
   await expectText(page, 'Bakery');
   await expectText(page, 'Crafts');
@@ -90,8 +92,8 @@ async function runThreeItemReport(page, businessLabel, items) {
 
     if (item.overridePrice) {
       await page.getByText('Edit price only if needed', { exact: true }).click();
-      const overrideField = page.locator('input').filter({ has: page.locator('input') });
-      await page.locator('input').last().fill(item.overridePrice);
+      const overrideField = page.getByRole('textbox', { name: 'Sell-unit price override' });
+      await overrideField.fill(item.overridePrice);
     }
 
     await page.getByRole('button', { name: 'Save Report Entry' }).click();
