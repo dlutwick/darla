@@ -32,6 +32,7 @@ export function TextField({
     <View style={styles.wrapper}>
       {label ? <Text style={styles.label}>{label}</Text> : null}
       <TextInput
+        accessibilityLabel={label}
         value={value}
         onChangeText={onChangeText}
         keyboardType={webNumeric ? 'default' : keyboardType}
